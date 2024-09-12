@@ -1,5 +1,5 @@
 from database import Database
-from vk_api import VKAPI
+from vk_api_bot import VKAPI
 import logging
 
 # Настройка логирования
