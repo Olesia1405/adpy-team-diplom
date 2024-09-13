@@ -1,14 +1,14 @@
 import requests
-from config import VK_TOKEN, VK_API_VERSION
+from config import VK_API_TOKEN, VK_API_VERSION
 import logging
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 class VKAPI:
     def __init__(self):
-        self.token = VK_TOKEN
+        self.token = VK_API_TOKEN
         self.version = VK_API_VERSION
         self.api_url = 'https://api.vk.com/method/'
 

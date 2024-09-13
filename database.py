@@ -4,7 +4,7 @@ from config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
 import logging
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 class Database:
