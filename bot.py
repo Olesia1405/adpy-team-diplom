@@ -5,13 +5,13 @@ from database import Database
 from vk_api_bot import VKAPI
 from config import config_logging, VK_GROUP_TOKEN
 from vk_api.longpoll import VkLongPoll, VkEventType
-from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+from vk_api.keyboard import VkKeyboard
 from vk_api.utils import get_random_id
+from btn_text import BTN_FIND_PAIR, buttons_star, buttons_choice
 
 # Настройка логирования
 config_logging()
 logger = logging.getLogger(__name__)
-
 
 
 class VKBot:
@@ -23,19 +23,41 @@ class VKBot:
         self.db = Database()
         self.vk_api = VKAPI()
 
+    def create_keyboard(self, buttons: list = None, one_time: bool = True):
+        """
+        Создание универсальной клавиатуры с возможностью добавления произвольных кнопок.
 
-    def create_keyboard(self):
+        :param buttons: Список кнопок в формате [(название, цвет)], где цвет - это VkKeyboardColor.
+        :param one_time: Если True, клавиатура будет исчезать после использования.
+        :return: Экземпляр клавиатуры.
         """
-        Создание клавиатуры с кнопкой 'Найти пару'.
-        """
-        keyboard = VkKeyboard(one_time=True)
-        keyboard.add_button("Найти пару", color=VkKeyboardColor.POSITIVE)
+        keyboard = VkKeyboard(one_time=one_time)
+
+        for name, color in buttons:
+            keyboard.add_button(name, color=color)
+
         return keyboard
 
-    def send_message(self, user_id, message, keyboard=None):
+    def send_message(self, user_id: int, message: str, keyboard: object = None):
         """
         Отправка сообщения пользователю с опциональной клавиатурой.
+
+        Эта функция использует метод `messages.send` из API ВКонтакте для отправки текстового
+        сообщения указанному пользователю. При необходимости можно добавить клавиатуру, которая
+        будет отображаться вместе с сообщением.
+
+        :param user_id: int Уникальный идентификатор пользователя ВКонтакте,
+                            которому будет отправлено сообщение.
+
+        :param keyboard: str Текст сообщения, которое будет отправлено пользователю.
+                             Не должно быть пустым.
+
+        :param message: object Объект клавиатуры, который будет отправлен вместе с сообщением.
+                        Если значение не указано, клавиатура не будет добавлена. Ожидается,
+                        что объект клавиатуры имеет метод `get_keyboard()`, который возвращает
+                        клавиатуру в формате, необходимом для отправки через API.
         """
+
         self.vk.messages.send(
             user_id=user_id,
             message=message,
@@ -44,20 +66,43 @@ class VKBot:
         )
         logger.info(f"Отправлено сообщение пользователю {user_id}: {message}")
 
+    def get_user_name(self, user_id:int)-> str:
+        """
+        Получает имя и фамилию пользователя по его user_id.
+        """
+        user_info = self.vk.users.get(user_ids=user_id)
+        first_name = user_info[0]['first_name']
+        last_name = user_info[0]['last_name']
+        return f"{first_name} {last_name}"
+
     def run(self):
         """
         Основной цикл прослушивания событий.
+
+        Эта функция запускает основной цикл, который прослушивает события от пользователей
+        ВКонтакте через Long Poll API. При получении нового сообщения от пользователя
+        функция обрабатывает текст сообщения и отправляет соответствующий ответ.
         """
         logger.info("Бот начал прослушивание событий...")
+
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 request = event.text.lower()
 
-                if request == "найти пару":
-                    self.send_message(event.user_id, "Ищем вам пару!", keyboard=self.create_keyboard())
+                user_name = self.get_user_name(event.user_id)
+                if request == "привет":
+                    self.send_message(event.user_id, f"Приветствую вас! {user_name}",
+                                      keyboard=self.create_keyboard(buttons_star))
+
+                elif request == BTN_FIND_PAIR.lower():
+                    self.send_message(event.user_id, f"{user_name} ищем вам пару!",
+                                      keyboard=self.create_keyboard(buttons_choice))
+
                 else:
                     self.send_message(event.user_id, "Я вас не понял. "
-                                                     "Нажмите 'Найти пару' для продолжения.")
+                                                     "Нажмите 'Найти пару' для продолжения.",
+                                      keyboard=self.create_keyboard(buttons_star)
+                                      )
 
     def find_and_save_users(self, age, gender, city):
         users = self.vk_api.search_users(age, gender, city)
