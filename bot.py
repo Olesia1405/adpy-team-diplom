@@ -1,3 +1,25 @@
+"""
+    Модуль bot.py
+
+    Этот модуль реализует VK бота с использованием VK API и Long Polling для обработки сообщений
+от пользователей.
+    Он включает функционал для отправки сообщений, создания клавиатур, управления состояниями
+    пользователей и обработки событий.
+
+Структура:
+- Класс VKBot:
+    - Инициализирует подключение к VK API и базовым функционалом бота.
+    - Предоставляет методы для отправки сообщений, создания клавиатур и управления состояниями
+        пользователей.
+    - Метод run запускает основной цикл прослушивания событий от пользователей.
+
+Пример использования:
+    1. Создайте экземпляр класса VKBot:
+       `bot = VKBot(vk_group_token)`
+
+    2. Используйте метод `run` для запуска бота:
+       `bot.run()`
+"""
 import logging
 import vk_api
 
@@ -7,7 +29,7 @@ from config import config_logging, VK_GROUP_TOKEN
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard
 from vk_api.utils import get_random_id
-from btn_text import BTN_FIND_PAIR, buttons_star, buttons_choice
+from handler import Handler
 
 # Настройка логирования
 config_logging()
@@ -15,15 +37,42 @@ logger = logging.getLogger(__name__)
 
 
 class VKBot:
-    def __init__(self, vk_group_token):
+    """
+        Класс VKBot.
+
+        Этот класс представляет VK бота, который использует VK API и Long Polling для взаимодействия
+    с пользователями.
+        Он предоставляет методы для отправки сообщений, создания клавиатур и управления состояниями
+    пользователей.
+
+    Атрибуты:
+    - vk_bot: Экземпляр VkApi для взаимодействия с VK API.
+    - longpoll: Экземпляр VkLongPoll для получения событий.
+    - vk: Объект API для работы с VK методами.
+    - db: Экземпляр базы данных для взаимодействия с хранилищем данных.
+    - vk_api: Дополнительный объект API.
+    - handler: Объект класса Handler для обработки сообщений и состояний пользователей.
+    - user_states: Словарь для хранения состояний пользователей.
+    """
+
+    def __init__(self, vk_group_token: str):
+        """
+        Инициализирует экземпляр VKBot.
+
+        :param vk_group_token: str Токен группы ВКонтакте для доступа к API.
+        """
         self.vk_bot = vk_api.VkApi(token=vk_group_token)
         self.longpoll = VkLongPoll(self.vk_bot)
         self.vk = self.vk_bot.get_api()
-        logger.info("Бот успешно инициализирован")
+
         self.db = Database()
         self.vk_api = VKAPI()
+        self.handler = Handler(self)
+        self.user_states = {}
+        logger.info("Бот успешно инициализирован")
 
-    def create_keyboard(self, buttons: list = None, one_time: bool = True):
+    def create_keyboard(self, buttons: list[tuple[str, str]] = None,
+                        one_time: bool = True) -> VkKeyboard:
         """
         Создание универсальной клавиатуры с возможностью добавления произвольных кнопок.
 
@@ -38,7 +87,7 @@ class VKBot:
 
         return keyboard
 
-    def send_message(self, user_id: int, message: str, keyboard: object = None):
+    def send_message(self, user_id: int, message: str, keyboard: VkKeyboard = None):
         """
         Отправка сообщения пользователю с опциональной клавиатурой.
 
@@ -66,14 +115,35 @@ class VKBot:
         )
         logger.info(f"Отправлено сообщение пользователю {user_id}: {message}")
 
-    def get_user_name(self, user_id:int)-> str:
+    def get_user_name(self, user_id: int) -> str:
         """
         Получает имя и фамилию пользователя по его user_id.
+
+        :param user_id: int Уникальный идентификатор пользователя ВКонтакте.
+        :return: str Имя и фамилия пользователя в формате 'Имя Фамилия'.
         """
         user_info = self.vk.users.get(user_ids=user_id)
         first_name = user_info[0]['first_name']
         last_name = user_info[0]['last_name']
         return f"{first_name} {last_name}"
+
+    def set_user_state(self, user_id: int, state: str):
+        """
+        Устанавливает состояние для пользователя.
+
+        :param user_id: int Уникальный идентификатор пользователя ВКонтакте.
+        :param state: str Новое состояние пользователя.
+        """
+        self.user_states[user_id] = state
+
+    def get_user_state(self, user_id: int) -> str:
+        """
+        Получает текущее состояние пользователя.
+
+        :param user_id: int Уникальный идентификатор пользователя ВКонтакте.
+        :return: str Текущее состояние пользователя или None, если состояние не установлено.
+        """
+        return self.user_states.get(user_id)
 
     def run(self):
         """
@@ -88,21 +158,14 @@ class VKBot:
         for event in self.longpoll.listen():
             if event.type == VkEventType.MESSAGE_NEW and event.to_me:
                 request = event.text.lower()
+                user_id = event.user_id
+                user_name = self.get_user_name(user_id)
+                state = self.get_user_state(user_id)
 
-                user_name = self.get_user_name(event.user_id)
-                if request == "привет":
-                    self.send_message(event.user_id, f"Приветствую вас! {user_name}",
-                                      keyboard=self.create_keyboard(buttons_star))
-
-                elif request == BTN_FIND_PAIR.lower():
-                    self.send_message(event.user_id, f"{user_name} ищем вам пару!",
-                                      keyboard=self.create_keyboard(buttons_choice))
-
+                if state:
+                    self.handler.state_handler(state, event, user_id, user_name, request)
                 else:
-                    self.send_message(event.user_id, "Я вас не понял. "
-                                                     "Нажмите 'Найти пару' для продолжения.",
-                                      keyboard=self.create_keyboard(buttons_star)
-                                      )
+                    self.handler.message_handler(event, user_name, request)
 
     def find_and_save_users(self, age, gender, city):
         users = self.vk_api.search_users(age, gender, city)
