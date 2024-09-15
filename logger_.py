@@ -1,6 +1,8 @@
 import logging
 import psycopg2
 import requests
+import os
+from dotenv import load_dotenv
 
 # Настройка логгера
 logging.basicConfig(
@@ -11,12 +13,13 @@ logging.basicConfig(
 
 # Пример подключения к базе данных
 def get_db_connection():
+    load_dotenv()
     try:
         conn = psycopg2.connect(
-            dbname="vk_bot_db",
-            user="your_username",
-            password="your_password",
-            host="localhost"
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            host=os.getenv('DB_HOST')
         )
         logging.info("Подключение к базе данных установлено.")
         return conn
