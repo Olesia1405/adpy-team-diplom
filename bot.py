@@ -23,6 +23,7 @@
 import logging
 import vk_api
 
+from time import sleep
 from database import Database
 from vk_api_bot import VKAPI
 from config import config_logging, VK_GROUP_TOKEN
@@ -153,19 +154,27 @@ class VKBot:
         ВКонтакте через Long Poll API. При получении нового сообщения от пользователя
         функция обрабатывает текст сообщения и отправляет соответствующий ответ.
         """
-        logger.info("Бот начал прослушивание событий...")
+        flag = 0
+        while True:
+            try:
+                for event in self.longpoll.listen():
+                    if flag == 0:
+                        logger.info("Бот начал прослушивание событий...")
+                        flag = 1
+                    if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                        request = event.text.lower()
+                        user_id = event.user_id
+                        user_name = self.get_user_name(user_id)
+                        state = self.get_user_state(user_id)
 
-        for event in self.longpoll.listen():
-            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                request = event.text.lower()
-                user_id = event.user_id
-                user_name = self.get_user_name(user_id)
-                state = self.get_user_state(user_id)
-
-                if state:
-                    self.handler.state_handler(state, event, user_id, user_name, request)
-                else:
-                    self.handler.message_handler(event, user_name, request)
+                        if state:
+                            self.handler.state_handler(state, event, user_id, user_name, request)
+                        else:
+                            self.handler.message_handler(event, user_name, request)
+            except Exception as e:
+                logger.error(f'Ошибка основного цикла {e}', exc_info=True)
+                flag = 0
+                sleep(5)
 
     def find_and_save_users(self, age, gender, city):
         users = self.vk_api.search_users(age, gender, city)
