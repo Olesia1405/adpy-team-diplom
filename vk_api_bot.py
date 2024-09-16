@@ -6,11 +6,72 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
 class VKAPI:
     def __init__(self):
         self.token = VK_API_TOKEN
         self.version = VK_API_VERSION
         self.api_url = 'https://api.vk.com/method/'
+
+    def _error_api(self, response):
+        """
+        Обрабатывает ошибки ответа API
+        :param response: ответ от сервера
+        :return: str кодом ошибки
+        """
+        if list(response.json().keys())[0] != 'response':
+            if response.json()['error']['error_code'] == 5:
+                output_ = "Ошибка авторизации ваш токен не действителен"
+            else:
+                output_ = f"Произошла ошибка  код ошибки " \
+                          f"{response.json()['error']['error_code']}." \
+                          f"\nСмотрите в домунтациик VK API\nhttps://dev.vk.com/ru/reference/errors"
+        else:
+            output_ = 'Пользователя не найден'
+
+        logger.error(output_)
+
+    def get_users_info(self, user_id: int | str) -> dict | None:
+        """
+        Получает информацию о пользователе ВКонтакте, включая имя, фамилию, пол и дату рождения.
+
+        Функция отправляет запрос к API ВКонтакте для получения данных о пользователе по его ID.
+        Возвращает словарь с ключами 'first_name', 'last_name', 'sex' и 'bdate', если запрос
+        успешен, либо вызывает метод `_error_api` при ошибке.
+
+        :param user_id: int Уникальный идентификатор пользователя ВКонтакте.
+
+        :return: dict Словарь с данными о пользователе:
+            - 'first_name' (str): Имя пользователя.
+            - 'last_name' (str): Фамилия пользователя.
+            - 'sex' (int): Пол пользователя (1 - женский, 2 - мужской, 0 - не указан).
+            - 'bdate' (str): Дата рождения пользователя в формате 'дд.мм.гггг' или 'дд.мм'.
+
+        :raises: Исключения не выбрасываются, но при наличии ошибки вызывается
+                 функция `_error_api`.
+        """
+        params = {
+            'access_token': self.token,
+            'v': self.version,
+            'user_ids': user_id,
+            'fields': 'sex, bdate'
+        }
+        response = requests.get(self.api_url + 'users.get',
+                                params=params, timeout=0.5)
+        if 'error' not in response.json().keys() and response.json()['response'] != []:
+            response_dict = response.json()['response'][0]
+            output_ = {
+                'first_name': response_dict['first_name'],
+                'last_name': response_dict['last_name'],
+                'sex': response_dict['sex'],
+                'bdate': response_dict['bdate']
+            }
+
+        else:
+            output_ = None
+            self._error_api(response)
+
+        return output_
 
     def get_city_id(self, city_name):
         method = 'database.getCities'
@@ -111,3 +172,8 @@ class VKAPI:
         else:
             logger.error(f"HTTP ошибка VK API: {response.status_code}")
             return []
+
+
+if __name__ == '__main__':
+    r = VKAPI()
+    print(r.get_users_info('diann_sss'))
