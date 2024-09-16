@@ -24,7 +24,7 @@
        `handler.state_handler(state, event, user_id, user_name, request)`
 """
 import logging
-from btn_text import BTN_FIND_PAIR, buttons_star, buttons_choice
+from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, buttons_choice, welcome_message, BTN_REGISTRATION
 
 logger = logging.getLogger(__name__)
 
@@ -61,21 +61,35 @@ class Handler:
         :param user_name: str Имя пользователя, которому бот отвечает.
         :param request: str Текст сообщения, отправленного пользователем.
         """
+        is_user_in_db = None
+        if request == "начать":
+            if is_user_in_db is None:
+                self.send_message(event.user_id, f"Привет, {user_name}! 👋 {welcome_message}",
+                                  keyboard=self.create_keyboard(buttons_regist))
+            else:
+                self.send_message(event.user_id, f"Привет, {user_name}! 👋",
+                                  keyboard=self.create_keyboard(buttons_start))
+        elif request == BTN_REGISTRATION.lower():
 
-        if request == "привет":
-            self.send_message(event.user_id, f"Приветствую вас! {user_name}",
-                              keyboard=self.create_keyboard(buttons_star))
+            self.send_message(event.user_id, f"{user_name} ищем вам пару!",
+                              keyboard=self.create_keyboard(buttons_start))
 
-        elif request == BTN_FIND_PAIR.lower():
+
+        elif request == BTN_FIND_PAIR.lower() and is_user_in_db:
             self.send_message(event.user_id, f"{user_name} ищем вам пару!",
                               keyboard=self.create_keyboard(buttons_choice))
             self.vk_bot.set_user_state(event.user_id, "waiting_for_pair")
 
         else:
-            self.send_message(event.user_id, "Я вас не понял. "
-                                             "Нажмите 'Найти пару' для продолжения.",
-                              keyboard=self.create_keyboard(buttons_star)
-                              )
+            text = 'Я вас не понял.Активирую главное меню.'
+            if is_user_in_db is None:
+                self.send_message(event.user_id, text,
+                                  keyboard=self.create_keyboard(buttons_regist)
+                                 )
+            else:
+                self.send_message(event.user_id, text,
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
 
     def state_handler(self, state: str, event, user_id: int, user_name: str, request: str):
         """
