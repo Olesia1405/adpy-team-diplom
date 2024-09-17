@@ -22,6 +22,7 @@
 """
 import logging
 import vk_api
+import re
 
 from time import sleep
 from database import Database
@@ -88,7 +89,8 @@ class VKBot:
 
         return keyboard
 
-    def send_message(self, user_id: int, message: str, keyboard: VkKeyboard = None):
+    def send_message(self, user_id: int, message: str, photo_url_list: list = None,
+                     keyboard: VkKeyboard = None):
         """
         Отправка сообщения пользователю с опциональной клавиатурой.
 
@@ -96,25 +98,63 @@ class VKBot:
         сообщения указанному пользователю. При необходимости можно добавить клавиатуру, которая
         будет отображаться вместе с сообщением.
 
+
         :param user_id: int Уникальный идентификатор пользователя ВКонтакте,
                             которому будет отправлено сообщение.
-
-        :param keyboard: str Текст сообщения, которое будет отправлено пользователю.
-                             Не должно быть пустым.
 
         :param message: object Объект клавиатуры, который будет отправлен вместе с сообщением.
                         Если значение не указано, клавиатура не будет добавлена. Ожидается,
                         что объект клавиатуры имеет метод `get_keyboard()`, который возвращает
                         клавиатуру в формате, необходимом для отправки через API.
+
+        :param photo_url: str
+
+        :param keyboard: str Текст сообщения, которое будет отправлено пользователю.
+                             Не должно быть пустым.
         """
+        attachment = None
+        if photo_url_list:
+            attachment = self._extract_photo_attachment(photo_url_list)
+            if not attachment:
+                logger.warning(f"Невозможно извлечь вложение из ссылки: {photo_url_list}")
 
         self.vk.messages.send(
             user_id=user_id,
             message=message,
             random_id=get_random_id(),
-            keyboard=keyboard.get_keyboard() if keyboard else None
+            keyboard=keyboard.get_keyboard() if keyboard else None,
+            attachment=','.join(attachment) if attachment is not None else None
         )
         logger.info(f"Отправлено сообщение пользователю {user_id}: {message}")
+
+    def _extract_photo_attachment(self, photo_url_list: list[str]) -> list[str] | None:
+        """
+        Извлечение идентификаторов фотографий из списка URL-адресов.
+
+        Эта функция принимает список URL-адресов фотографий и извлекает
+        идентификаторы фотографий в формате 'photo{owner_id}_{photo_id}'.
+        Если хотя бы один URL не соответствует ожидаемому формату,
+        функция вернет None. В противном случае вернется строка,
+        содержащая идентификаторы, разделенные запятыми.
+
+        :param photo_url_list: list[str]
+                Список URL-адресов фотографий, из которых необходимо
+                извлечь идентификаторы.
+
+        :return: list[str] Строка с идентификаторами фотографий, разделенными запятыми,
+            или None, если ни один из URL не соответствует формату.
+        """
+
+        result = []
+        for photo_url in photo_url_list:
+            match = re.search(r'photo(\d+_\d+)', photo_url)
+
+            if match:
+                result.append(match.group(0))
+            else:
+                result = None
+        print(result)
+        return result
 
     def get_user_name(self, user_id: int) -> str:
         """
