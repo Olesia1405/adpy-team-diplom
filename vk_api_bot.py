@@ -1,6 +1,7 @@
-from config import VK_API_TOKEN, VK_API_VERSION
 import logging
 import requests
+import re
+from config import VK_API_TOKEN, VK_API_VERSION
 
 # Настройка логирования
 
@@ -54,24 +55,43 @@ class VKAPI:
             'access_token': self.token,
             'v': self.version,
             'user_ids': user_id,
-            'fields': 'sex, bdate'
+            'fields': 'sex, bdate, city'
         }
         response = requests.get(self.api_url + 'users.get',
                                 params=params, timeout=0.5)
         if 'error' not in response.json().keys() and response.json()['response'] != []:
             response_dict = response.json()['response'][0]
-            output_ = {
-                'first_name': response_dict['first_name'],
-                'last_name': response_dict['last_name'],
-                'sex': response_dict['sex'],
-                'bdate': response_dict['bdate']
+            bdate = self.format_bdate(response_dict.get('bdate', None))
+
+            result = {
+                'id': response_dict.get('id'),
+                'first_name': response_dict.get('first_name', None),
+                'last_name': response_dict.get('last_name', None),
+                'city': response_dict.get('city', {}).get('title', None),
+                'sex': response_dict.get('sex', None),
+                'bdate': bdate
             }
 
         else:
-            output_ = None
+            result = None
             self._error_api(response)
 
-        return output_
+        return result
+
+    def format_bdate(self, date: str) -> str | None:
+        """
+        Форматирует дату рождения из формата 'дд.мм.гггг' в формат 'гггг-мм-дд'.
+
+        :param date: str Дата рождения в формате 'дд.мм.гггг'.
+
+        :return: str Дата рождения в формате 'гггг-мм-дд' или None,
+            если дата неполная или неверная.
+        """
+        if date and re.match(r'^\d{1,2}\.\d{1,2}\.\d{4}$', date):
+            day, month, year = date.split('.')
+            return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+
+        return None
 
     def get_city_id(self, city_name):
         method = 'database.getCities'
@@ -175,5 +195,9 @@ class VKAPI:
 
 
 if __name__ == '__main__':
+    from my_test import id_test1, id_test2, id_test3
+
     r = VKAPI()
-    print(r.get_users_info('diann_sss'))
+    print(r.get_users_info(id_test1))
+    print(r.get_users_info(id_test2))
+    print(r.get_users_info(id_test3))

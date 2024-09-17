@@ -85,7 +85,7 @@ class Handler:
             if is_user_in_db is None:
                 self.send_message(event.user_id, text,
                                   keyboard=self.create_keyboard(buttons_regist)
-                                 )
+                                  )
             else:
                 self.send_message(event.user_id, text,
                                   keyboard=self.create_keyboard(buttons_start)
