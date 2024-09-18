@@ -51,11 +51,22 @@ class Database:
         в формате [('название_столбца', 'тип_данных'), ...].
         """
         try:
-            columns_str = ', '.join(f'{col[0]} {col[1]}' for col in columns)
-            query = sql.SQL(f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_str})")
-            self.cur.execute(query)
-            self.conn.commit()
-            logger.info(f"Таблица {table_name} успешно создана")
+            self.cur.execute("""
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM information_schema.tables
+                            WHERE table_name = %s
+                        );
+                    """, (table_name,))
+            table_exists = self.cur.fetchone()[0]
+            if table_exists:
+                logger.info(f"Таблица {table_name} уже существует")
+            else:
+                columns_str = ', '.join(f'{col[0]} {col[1]}' for col in columns)
+                query = sql.SQL(f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_str})")
+                self.cur.execute(query)
+                self.conn.commit()
+                logger.info(f"Таблица {table_name} успешно создана")
         except psycopg2.DatabaseError as e:
             logger.error(f"Ошибка при создании таблицы {table_name}: {e}")
 
