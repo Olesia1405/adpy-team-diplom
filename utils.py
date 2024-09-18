@@ -2,15 +2,89 @@
 Будет содержать вспомогательные функци
 """
 import logging
+import re
+
 from database import Database
+from vk_api_service import VKAPI
 
 logger = logging.getLogger(__name__)
+
+
+class AuxiliaryUtils:
+    """
+    Класс вспомогательных утилит для работы с данными пользователя и кандидата.
+
+    Этот класс объединяет функционал взаимодействия с VK API для получения информации о пользователях и кандидатах,
+    а также работы с базой данных для сохранения полученных данных. Использует сервис `VKAPI` для работы с API ВКонтакте
+    и `DatabaseUtils` для взаимодействия с базой данных.
+    """
+    def __init__(self):
+        self.vk_service = VKAPI()
+        self.db_utils = DatabaseUtils()
+
+    def prepare_user_candidate_data(self, user_vk_id: int, table_name: str = 'users'):
+        """
+            Подготавливает данные пользователя или кандидата для сохранения в базу данных.
+
+            Функция получает информацию о пользователе ВКонтакте, включая его имя, город,
+        дату рождения, пол и фотографии, используя методы класса `VKAPI`. Затем извлекает
+        идентификатор фотографии для прикрепления и формирует словарь с данными, которые
+        сохраняются в таблицу базы данных.
+
+        :param user_vk_id: int Идентификатор пользователя ВКонтакте.
+        :param table_name: str Название таблицы базы данных для сохранения данных
+            (по умолчанию 'users').
+        """
+        common_data = self.vk_service.get_users_info(user_vk_id)
+        photo_url = self.vk_service.get_top_photos(user_vk_id)
+        photo_id = self._extract_photo_attachment(photo_url)
+        name = f"{common_data['first_name'] if common_data['first_name'] != 'None' else ''}" \
+               f" {common_data['last_name'] if common_data['last_name'] != 'None' else ''}"
+        data = {
+            'vk_id': common_data['id'],
+            'name': name,
+            'city': common_data['city'],
+            'birthday': common_data['bdate'],
+            'gender': common_data['sex'],
+            'photo_ids': photo_id,
+        }
+        self.db_utils.seve_user_candidate(data, table_name=table_name)
+
+    def _extract_photo_attachment(self, photo_url_list: list[str]) -> list[str] | None:
+        """
+        Извлечение идентификаторов фотографий из списка URL-адресов.
+
+        Эта функция принимает список URL-адресов фотографий и извлекает
+        идентификаторы фотографий в формате 'photo{owner_id}_{photo_id}'.
+        Если хотя бы один URL не соответствует ожидаемому формату,
+        функция вернет None. В противном случае вернется строка,
+        содержащая идентификаторы, разделенные запятыми.
+
+        :param photo_url_list: list[str]
+                Список URL-адресов фотографий, из которых необходимо
+                извлечь идентификаторы.
+
+        :return: list[str] Строка с идентификаторами фотографий, разделенными запятыми,
+            или None, если ни один из URL не соответствует формату.
+        """
+
+        result = []
+        for photo_url in photo_url_list:
+            match = re.search(r'photo(\d+_\d+)', photo_url)
+
+            if match:
+                result.append(match.group(0))
+            else:
+                result = None
+
+        return result
 
 
 class DatabaseUtils(Database):
     """
     Класс для управления базой данных, наследующий методы и свойства из класса Database.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -36,7 +110,7 @@ class DatabaseUtils(Database):
             ('vk_id', 'BIGINT UNIQUE NOT NULL'),
             ('name', 'VARCHAR(255) NOT NULL'),
             ('city', 'VARCHAR(255)'),
-            ('age', 'INT'),
+            ('birthday', 'DATE'),
             ('gender', 'SMALLINT CHECK (gender IN (1, 2))'),
             ('photo_ids', 'BIGINT[]')
         ]
@@ -76,6 +150,10 @@ class DatabaseUtils(Database):
         result = self.select_data(table_name, columns, condition, values)
         return result if result else None
 
+    def seve_user_candidate(self, data: dict, table_name: str = 'users'):
+        self.insert_data(table_name=table_name, data=data)
 
 
-
+if __name__ == '__main__':
+    r = AuxiliaryUtils()
+    print(r.prepare_user_candidate_data(97119404))
