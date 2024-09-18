@@ -61,7 +61,7 @@ class VKAPI:
                                 params=params, timeout=0.5)
         if 'error' not in response.json().keys() and response.json()['response'] != []:
             response_dict = response.json()['response'][0]
-            bdate = self.format_bdate(response_dict.get('bdate', None))
+            bdate = self._format_bdate(response_dict.get('bdate', None))
 
             result = {
                 'id': response_dict.get('id'),
@@ -78,7 +78,7 @@ class VKAPI:
 
         return result
 
-    def format_bdate(self, date: str) -> str | None:
+    def _format_bdate(self, date: str) -> str | None:
         """
         Форматирует дату рождения из формата 'дд.мм.гггг' в формат 'гггг-мм-дд'.
 
@@ -153,6 +153,21 @@ class VKAPI:
             return []
 
     def get_top_photos(self, user_id, top_n=3):
+        """
+            Получение топ-N фотографий пользователя из альбома профиля ВКонтакте, отсортированных
+        по количеству лайков.
+
+            Функция делает запрос к VK API для получения фотографий пользователя из альбома
+        "profile", сортирует их по количеству лайков и возвращает ссылки на N лучших фотографий.
+
+        :param user_id: int Идентификатор пользователя ВКонтакте, чьи фотографии будут запрошены.
+        :param top_n: int Количество лучших фотографий, которые нужно вернуть (по умолчанию 3).
+
+        :return: list Список URL-адресов топ-N фотографий пользователя. Если фотографий нет или
+            произошла ошибка, возвращается пустой список.
+        :raises: Exception В случае ошибки авторизации (неверный токен).
+        """
+
         method = 'photos.get'
         params = {
             'access_token': self.token,
@@ -166,7 +181,6 @@ class VKAPI:
         if response.status_code == 200:
             data = response.json()
 
-            # Проверка на ошибку авторизации
             if 'error' in data and data['error']['error_code'] == 5:
                 logger.error(f"Ошибка авторизации пользователя: {data['error']['error_msg']}")
                 raise Exception("Ошибка авторизации пользователя: неверный токен")
@@ -174,15 +188,13 @@ class VKAPI:
             if 'response' in data:
                 photos = data['response']['items']
 
-                # Если у пользователя нет фотографий
                 if not photos:
                     logger.warning(f"У пользователя {user_id} нет фотографий.")
                     return []
 
-                # Сортируем фотографии по количеству лайков
                 sorted_photos = sorted(photos, key=lambda x: x['likes']['count'], reverse=True)
                 top_photos = sorted_photos[:top_n]
-                photo_urls = [photo['sizes'][-1]['url'] for photo in top_photos]  # Берем самый большой размер
+                photo_urls = [photo['sizes'][-1]['url'] for photo in top_photos]
                 return photo_urls
 
             else:
@@ -201,3 +213,5 @@ if __name__ == '__main__':
     print(r.get_users_info(id_test1))
     print(r.get_users_info(id_test2))
     print(r.get_users_info(id_test3))
+    print(r.get_top_photos(97119404))
+    print(r.get_top_photos(id_test3))
