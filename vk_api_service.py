@@ -213,5 +213,4 @@ if __name__ == '__main__':
     print(r.get_users_info(id_test1))
     print(r.get_users_info(id_test2))
     print(r.get_users_info(id_test3))
-    print(r.get_top_photos(97119404))
-    print(r.get_top_photos(id_test3))
+
