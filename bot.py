@@ -32,6 +32,7 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard
 from vk_api.utils import get_random_id
 from handler import Handler
+from utils import DatabaseUtils
 
 # Настройка логирования
 config_logging()
@@ -89,7 +90,7 @@ class VKBot:
 
         return keyboard
 
-    def send_message(self, user_id: int, message: str, photo_url_list: list = None,
+    def send_message(self, user_id: int, message: str, photo_id_list: list = None,
                      keyboard: VkKeyboard = None):
         """
         Отправка сообщения пользователю с опциональной клавиатурой.
@@ -107,16 +108,16 @@ class VKBot:
                         что объект клавиатуры имеет метод `get_keyboard()`, который возвращает
                         клавиатуру в формате, необходимом для отправки через API.
 
-        :param photo_url: str
+        :param photo_id_list: list Список индикаторов фотографий
 
         :param keyboard: str Текст сообщения, которое будет отправлено пользователю.
                              Не должно быть пустым.
         """
         attachment = None
-        if photo_url_list:
-            attachment = self._extract_photo_attachment(photo_url_list)
+        if photo_id_list:
+            attachment = self._extract_photo_attachment(photo_id_list)
             if not attachment:
-                logger.warning(f"Невозможно извлечь вложение из ссылки: {photo_url_list}")
+                logger.warning(f"Невозможно извлечь вложение из ссылки: {photo_id_list}")
 
         self.vk.messages.send(
             user_id=user_id,
@@ -195,6 +196,7 @@ class VKBot:
         функция обрабатывает текст сообщения и отправляет соответствующий ответ.
         """
         flag = 0
+        DatabaseUtils().add_table()
         while True:
             try:
                 for event in self.longpoll.listen():
@@ -216,58 +218,7 @@ class VKBot:
                 flag = 0
                 sleep(5)
 
-    def find_and_save_users(self, age, gender, city):
-        users = self.vk_api.search_users(age, gender, city)
-        for user in users:
-            vk_id = user['id']
-            first_name = user.get('first_name', '')
-            last_name = user.get('last_name', '')
-            name = f"{first_name} {last_name}".strip()
-            city_name = user['city']['title'] if 'city' in user and user['city'] else None
-            user_age = user.get('age', None)
-            user_gender = user.get('sex', None)  # 1 — женский, 2 — мужской
-            gender_char = 'F' if user_gender == 1 else 'M' if user_gender == 2 else None
 
-            user_id = self.db.insert_user(vk_id, name, city_name, user_age, gender_char)
-            if user_id:
-                # Получение и сохранение фотографий
-                photos = self.vk_api.get_top_photos(vk_id)
-                for photo_url in photos:
-                    # Для простоты считаем количество лайков равным нулю
-                    # Вы можете расширить метод get_top_photos, чтобы возвращать также количество лайков
-                    self.db.insert_photo(user_id, photo_url, likes_count=0)
-
-    def add_favorite_user(self, user_id, favorite_vk_id):
-        self.db.add_favorite(user_id, favorite_vk_id)
-
-    def list_favorites(self, user_id):
-        favorites = self.db.get_favorites(user_id)
-        for fav in favorites:
-            vk_id, date_added = fav
-            print(f"VK ID: {vk_id}, Дата добавления: {date_added}")
-
-    def close(self):
-        self.db.close()
-
-
-# Пример использования
 if __name__ == '__main__':
     bot = VKBot(VK_GROUP_TOKEN)
     bot.run()
-
-    # try:
-    #     # Пример поиска и сохранения пользователей
-    #     age = 25
-    #     gender = 1  # 1 — женский, 2 — мужской
-    #     city = 'Москва'
-    #     bot.find_and_save_users(age, gender, city)
-    #
-    #     # Пример добавления в избранные
-    #     user_id = 1  # ID пользователя в нашей системе
-    #     favorite_vk_id = 123456789
-    #     bot.add_favorite_user(user_id, favorite_vk_id)
-    #
-    #     # Пример вывода избранных
-    #     bot.list_favorites(user_id)
-    # finally:
-    #     bot.close()
