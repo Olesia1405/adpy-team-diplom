@@ -25,6 +25,7 @@
 """
 import logging
 from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, buttons_choice, welcome_message, BTN_REGISTRATION
+from utils import DatabaseUtils, AuxiliaryUtils
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,9 @@ class Handler:
         self.vk_bot = vk_bot
         self.send_message = vk_bot.send_message
         self.create_keyboard = vk_bot.create_keyboard
+        self.util_db = DatabaseUtils()
+        self.utils_auxiliary = AuxiliaryUtils()
+
 
     def message_handler(self, event, user_name: str, request: str):
         """
@@ -59,9 +63,9 @@ class Handler:
 
         :param event: Объект события из VK API, содержащий информацию о сообщении.
         :param user_name: str Имя пользователя, которому бот отвечает.
-        :param request: str Текст сообщения, отправленного пользователем.
-        """
-        is_user_in_db = None
+        :param request: str Текст сообщения, отправленного пользователем.        """
+
+        is_user_in_db = self.util_db.check_user_existence_db(event.user_id)
         if request == "начать":
             if is_user_in_db is None:
                 self.send_message(event.user_id, f"Привет, {user_name}! 👋 {welcome_message}",
@@ -69,9 +73,10 @@ class Handler:
             else:
                 self.send_message(event.user_id, f"Привет, {user_name}! 👋",
                                   keyboard=self.create_keyboard(buttons_start))
-        elif request == BTN_REGISTRATION.lower():
 
-            self.send_message(event.user_id, f"{user_name} ищем вам пару!",
+        elif request == BTN_REGISTRATION.lower():
+            self.utils_auxiliary.prepare_user_candidate_data(event.user_id)
+            self.send_message(event.user_id, f"{user_name} вы зарегистрированы!",
                               keyboard=self.create_keyboard(buttons_start))
 
 
