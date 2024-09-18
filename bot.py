@@ -26,7 +26,7 @@ import re
 
 from time import sleep
 from database import Database
-from vk_api_bot import VKAPI
+from vk_api_service import VKAPI
 from config import config_logging, VK_GROUP_TOKEN
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.keyboard import VkKeyboard
@@ -127,35 +127,6 @@ class VKBot:
             attachment=','.join(attachment) if attachment is not None else None
         )
         logger.info(f"Отправлено сообщение пользователю {user_id}: {message}")
-
-    def _extract_photo_attachment(self, photo_url_list: list[str]) -> list[str] | None:
-        """
-        Извлечение идентификаторов фотографий из списка URL-адресов.
-
-        Эта функция принимает список URL-адресов фотографий и извлекает
-        идентификаторы фотографий в формате 'photo{owner_id}_{photo_id}'.
-        Если хотя бы один URL не соответствует ожидаемому формату,
-        функция вернет None. В противном случае вернется строка,
-        содержащая идентификаторы, разделенные запятыми.
-
-        :param photo_url_list: list[str]
-                Список URL-адресов фотографий, из которых необходимо
-                извлечь идентификаторы.
-
-        :return: list[str] Строка с идентификаторами фотографий, разделенными запятыми,
-            или None, если ни один из URL не соответствует формату.
-        """
-
-        result = []
-        for photo_url in photo_url_list:
-            match = re.search(r'photo(\d+_\d+)', photo_url)
-
-            if match:
-                result.append(match.group(0))
-            else:
-                result = None
-        print(result)
-        return result
 
     def get_user_name(self, user_id: int) -> str:
         """
