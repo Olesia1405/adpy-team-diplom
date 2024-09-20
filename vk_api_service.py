@@ -194,7 +194,12 @@ class VKAPI:
 
                 sorted_photos = sorted(photos, key=lambda x: x['likes']['count'], reverse=True)
                 top_photos = sorted_photos[:top_n]
-                photo_urls = [photo['sizes'][-1]['url'] for photo in top_photos]
+
+                photo_urls = [
+                    f"https://vk.com/{user_id}?z=photo{photo['owner_id']}_{photo['id']}" \
+                    f"/photo_feed{photo['owner_id']}"
+                    for photo in top_photos
+                ]
                 return photo_urls
 
             else:
@@ -207,10 +212,11 @@ class VKAPI:
 
 
 if __name__ == '__main__':
-    from my_test import id_test1, id_test2, id_test3
+    from my_test import id_test1, id_test2, id_test3, id_test4
 
     r = VKAPI()
     print(r.get_users_info(id_test1))
     print(r.get_users_info(id_test2))
     print(r.get_users_info(id_test3))
-
+    print(r.get_users_info(id_test4))
+    print(r.get_top_photos(id_test4))
