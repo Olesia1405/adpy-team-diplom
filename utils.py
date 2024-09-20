@@ -12,12 +12,14 @@ logger = logging.getLogger(__name__)
 
 class AuxiliaryUtils:
     """
-    Класс вспомогательных утилит для работы с данными пользователя и кандидата.
+        Класс вспомогательных утилит для работы с данными пользователя и кандидата.
 
-    Этот класс объединяет функционал взаимодействия с VK API для получения информации о пользователях и кандидатах,
-    а также работы с базой данных для сохранения полученных данных. Использует сервис `VKAPI` для работы с API ВКонтакте
-    и `DatabaseUtils` для взаимодействия с базой данных.
+        Этот класс объединяет функционал взаимодействия с VK API для получения информации
+    о пользователях и кандидатах, а также работы с базой данных для сохранения полученных данных.
+    Использует сервис `VKAPI` для работы с API ВКонтакте и `DatabaseUtils` для взаимодействия с
+    базой данных.
     """
+
     def __init__(self):
         self.vk_service = VKAPI()
         self.db_utils = DatabaseUtils()
@@ -37,7 +39,7 @@ class AuxiliaryUtils:
         """
         common_data = self.vk_service.get_users_info(user_vk_id)
         photo_url = self.vk_service.get_top_photos(user_vk_id)
-        photo_id = self._extract_photo_attachment(photo_url)
+        photo_id = self._extract_photo_attachment(photo_url) if photo_url else None
         name = f"{common_data['first_name'] if common_data['first_name'] != 'None' else ''}" \
                f" {common_data['last_name'] if common_data['last_name'] != 'None' else ''}"
         data = {
@@ -48,7 +50,13 @@ class AuxiliaryUtils:
             'gender': common_data['sex'],
             'photo_ids': photo_id,
         }
-        self.db_utils.seve_user_candidate(data, table_name=table_name)
+        result = self.db_utils.insert_data(table_name, data)
+
+        if result is not None:
+            info_message = 'Регистрация прошла успешно✅'
+        else:
+            info_message = 'Регистрация провалена⛔'
+        return info_message
 
     def _extract_photo_attachment(self, photo_url_list: list[str]) -> list[str] | None:
         """
@@ -112,7 +120,7 @@ class DatabaseUtils(Database):
             ('city', 'VARCHAR(255)'),
             ('birthday', 'DATE'),
             ('gender', 'SMALLINT CHECK (gender IN (1, 2))'),
-            ('photo_ids', 'BIGINT[]')
+            ('photo_ids', 'TEXT[]')
         ]
 
         table_candidate = 'candidate'
@@ -151,9 +159,8 @@ class DatabaseUtils(Database):
         return result if result else None
 
     def seve_user_candidate(self, data: dict, table_name: str = 'users'):
-        self.insert_data(table_name=table_name, data=data)
+        return self.insert_data(table_name=table_name, data=data)
 
 
 if __name__ == '__main__':
     r = AuxiliaryUtils()
-    print(r.prepare_user_candidate_data(97119404))
