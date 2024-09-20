@@ -3,7 +3,6 @@ import logging
 from psycopg2 import sql
 from config import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, config_logging
 
-
 # Настройка логирования
 
 logger = logging.getLogger(__name__)
@@ -95,16 +94,23 @@ class Database:
         """
         try:
             columns = data.keys()
-            values = data.values()
+            values = list(data.values())
+
+            for i, value in enumerate(values):
+                if isinstance(value, list):
+                    values[i] = '{' + ','.join(f'"{v}"' for v in value) + '}'
+
             query = sql.SQL(
                 f"INSERT INTO {table_name} ({', '.join(columns)})"
                 f" VALUES ({', '.join(['%s'] * len(values))}) RETURNING id"
             )
-            self.cur.execute(query, list(values))
+
+            self.cur.execute(query, values)
             inserted_id = self.cur.fetchone()[0]
             self.conn.commit()
             logger.info(f'Данные {data} в таблицу {table_name} успешно добавлены')
             return inserted_id
+
         except psycopg2.DatabaseError as e:
             logger.error(f"Ошибка при вставке данных в таблицу {table_name}: {e}")
             return None
