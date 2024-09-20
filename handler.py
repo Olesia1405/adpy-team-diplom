@@ -75,8 +75,9 @@ class Handler:
                                   keyboard=self.create_keyboard(buttons_start))
 
         elif request == BTN_REGISTRATION.lower():
-            self.utils_auxiliary.prepare_user_candidate_data(event.user_id)
-            self.send_message(event.user_id, f"{user_name} вы зарегистрированы!",
+            info_message = self.utils_auxiliary.prepare_user_candidate_data(event.user_id)
+
+            self.send_message(event.user_id, f"{user_name} {info_message}",
                               keyboard=self.create_keyboard(buttons_start))
 
 
