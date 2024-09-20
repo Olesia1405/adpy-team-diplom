@@ -1,3 +1,18 @@
+"""
+Модуль для взаимодействия с VK API.
+
+Этот модуль предоставляет класс `VKAPI`, который позволяет выполнять различные запросы к VK API,
+включая получение информации о пользователях, поиск пользователей по заданным критериям,
+а также получение топовых фотографий пользователя по количеству лайков.
+
+Основные возможности:
+- Получение информации о пользователе ВКонтакте.
+- Поиск пользователей по возрасту, полу и городу.
+- Получение топ-N фотографий пользователя.
+- Обработка ошибок VK API с логированием.
+
+Для работы с VK API требуется токен доступа, который передается при инициализации класса.
+"""
 import logging
 import requests
 import re
@@ -9,6 +24,43 @@ logger = logging.getLogger(__name__)
 
 
 class VKAPI:
+    """
+    Класс для взаимодействия с VK API.
+
+        Этот класс предоставляет методы для выполнения запросов к VK API, включая получение
+    информации о пользователях, поиск пользователей и получение фотографий. В случае ошибок
+    взаимодействия с API используются встроенные механизмы логирования для записи ошибок.
+
+    Атрибуты:
+    ----------
+    - token : str
+        Токен доступа к VK API, используемый для авторизации запросов.
+    - version : str
+        Версия API, которая используется для запросов.
+    - api_url : str
+        Базовый URL для выполнения запросов к VK API.
+
+    Методы:
+    -------
+    - _error_api(response):
+        Обрабатывает ошибки ответа VK API и логирует их.
+
+    - get_users_info(user_id: int | str) -> dict | None:
+        Получает информацию о пользователе ВКонтакте по его идентификатору.
+
+    - _format_bdate(date: str) -> str | None:
+        Форматирует дату рождения из формата 'дд.мм.гггг' в формат 'гггг-мм-дд'.
+
+    - _get_city_id(city_name: str) -> int | None:
+        Получает идентификатор города по его названию.
+
+    - search_users(age: list[int], gender: int, city_name: str, count: int = 10,
+    offset: int = 0) -> list | int: Ищет пользователей ВКонтакте по возрасту, полу и городу.
+
+    - get_top_photos(user_id, top_n=3) -> list:
+        Получает топ-N фотографий пользователя ВКонтакте по количеству лайков.
+    """
+
     def __init__(self):
         self.token = VK_API_TOKEN
         self.version = VK_API_VERSION
@@ -16,21 +68,35 @@ class VKAPI:
 
     def _error_api(self, response):
         """
-        Обрабатывает ошибки ответа API
-        :param response: ответ от сервера
-        :return: str кодом ошибки
-        """
-        if list(response.json().keys())[0] != 'response':
-            if response.json()['error']['error_code'] == 5:
-                output_ = "Ошибка авторизации ваш токен не действителен"
-            else:
-                output_ = f"Произошла ошибка  код ошибки " \
-                          f"{response.json()['error']['error_code']}." \
-                          f"\nСмотрите в домунтациик VK API\nhttps://dev.vk.com/ru/reference/errors"
-        else:
-            output_ = 'Пользователя не найден'
+        Обрабатывает ошибки ответа API и логирует их.
 
-        logger.error(output_)
+        :param response: Ответ от сервера VK API.
+        :return: None
+        """
+        try:
+            logger.error(f"Ошибка в ответе от VK API. HTTP статус: {response.status_code}")
+
+            response_json = response.json()
+            logger.debug(f"Ответ от VK API: {response_json}")
+
+            if 'error' in response_json:
+                error_code = response_json['error']['error_code']
+                if error_code == 5:
+                    output_ = "Ошибка авторизации: ваш токен не действителен."
+                    logger.error("Ошибка авторизации (код 5). Токен устарел или недействителен.")
+                else:
+                    output_ = (f"Произошла ошибка. Код ошибки: {error_code}. "
+                               f"Смотрите в документации VK "
+                               f"API: https://dev.vk.com/ru/reference/errors")
+                    logger.error(f"Ошибка VK API (код {error_code}).")
+            else:
+                output_ = 'Пользователь не найден'
+                logger.error("Пользователь не найден в ответе VK API.")
+
+            logger.error(f"Сообщение об ошибке: {output_}")
+
+        except Exception as e:
+            logger.exception(f"Ошибка при обработке ответа от VK API: {e}")
 
     def get_users_info(self, user_id: int | str) -> dict | None:
         """
@@ -93,7 +159,17 @@ class VKAPI:
 
         return None
 
-    def get_city_id(self, city_name):
+    def _get_city_id(self, city_name: str) -> int | None:
+        """
+        Получение идентификатора города по его названию.
+
+        Функция делает запрос к VK API для получения списка городов с указанным
+        именем и возвращает идентификатор первого найденного города.
+
+        :param city_name: str Название города, для которого нужно получить ID.
+
+        :return: int Идентификатор города, если запрос успешен, иначе None.
+        """
         method = 'database.getCities'
         params = {
             'access_token': self.token,
@@ -111,22 +187,46 @@ class VKAPI:
                 logger.error(f"Ошибка в ответе VK API: {data}")
                 return None
         else:
-            logger.error(f"HTTP ошибка VK API: {response.status_code}")
+            self._error_api(response)
             return None
 
-    def search_users(self, age, gender, city_name, count=10, offset=0):
-        # Получаем идентификатор города перед поиском
-        city_id = self.get_city_id(city_name)
+    def search_users(self, age: list[int], gender: int, city_name: str,
+                     count: int = 10, offset: int = 0) -> list | int:
+        """
+        Поиск пользователей ВКонтакте по возрасту, полу и городу.
+
+        Функция делает запрос к VK API для поиска пользователей по заданным
+        параметрам (возраст, пол, город) и возвращает список их идентификаторов.
+
+        :param age: list[int] Список с возрастом или диапазоном возрастов для поиска.
+                    Например, [25] для поиска 25-летних или [25, 30] для поиска пользователей
+                    в возрасте от 25 до 30 лет.
+        :param gender: int Пол пользователя (1 - женский, 2 - мужской).
+        :param city_name: str Название города для поиска пользователей.
+        :param count: int Количество возвращаемых результатов (по умолчанию 10).
+        :param offset: int Смещение для постраничного вывода (по умолчанию 0).
+
+        :return: list[int] Список идентификаторов найденных пользователей, если запрос успешен,
+            иначе None.
+        """
+        city_id = self._get_city_id(city_name)
         if city_id is None:
             logger.error(f"Не удалось получить идентификатор города для {city_name}")
             return []
+
+        if len(age) > 1:
+            age_from = age[0]
+            age_to = age[1]
+        else:
+            age_from = age[0]
+            age_to = age_from
 
         method = 'users.search'
         params = {
             'access_token': self.token,
             'v': self.version,
-            'age_from': age,
-            'age_to': age,
+            'age_from': age_from,
+            'age_to': age_to,
             'sex': gender,
             'city': city_id,
             'has_photo': 1,
@@ -134,23 +234,21 @@ class VKAPI:
             'offset': offset,
             'fields': 'photo_max'
         }
+        result = []
         response = requests.get(self.api_url + method, params=params)
         if response.status_code == 200:
             data = response.json()
-            # Проверка на ошибку авторизации
-            if 'error' in data and data['error']['error_code'] == 5:
-                logger.error(f"Ошибка авторизации пользователя: {data['error']['error_msg']}")
-                raise Exception("Ошибка авторизации пользователя: неверный токен")
-
             if 'response' in data:
-                return data['response']['items']
+                for vk_id in data['response']['items']:
+                    result.append(vk_id['id'])
 
             else:
-                logger.error(f"Ошибка в ответе VK API: {data}")
-                return []
+                self._error_api(response)
+                result = None
         else:
-            logger.error(f"HTTP ошибка VK API: {response.status_code}")
-            return []
+            self._error_api(response)
+            result = None
+        return result
 
     def get_top_photos(self, user_id, top_n=3):
         """
@@ -190,7 +288,7 @@ class VKAPI:
 
                 if not photos:
                     logger.warning(f"У пользователя {user_id} нет фотографий.")
-                    return []
+                    return None
 
                 sorted_photos = sorted(photos, key=lambda x: x['likes']['count'], reverse=True)
                 top_photos = sorted_photos[:top_n]
@@ -204,11 +302,11 @@ class VKAPI:
 
             else:
                 logger.error(f"Ошибка в ответе VK API: {data}")
-                return []
+                return None
 
         else:
-            logger.error(f"HTTP ошибка VK API: {response.status_code}")
-            return []
+            self._error_api(response)
+            return None
 
 
 if __name__ == '__main__':
