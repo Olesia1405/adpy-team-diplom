@@ -87,6 +87,15 @@ class AuxiliaryUtils:
 
         return result
 
+    def test(self, user_data: dict, user_vk_id: int):
+
+        response = self.vk_service.search_users(user_data[user_vk_id]['age'],
+                                                user_data[user_vk_id]['sex'],
+                                                user_data[user_vk_id]['city'],
+
+                                                )
+        print(response)
+
 
 class DatabaseUtils(Database):
     """
