@@ -40,6 +40,8 @@ BTN_HELP = "Помощь🆘"
 BTN_LIKE = "Нравится👍"
 BTN_DISLIKE = "Не нравится👎"
 BTN_NEXT = "Следующий👉"
+BTN_SEX_MAN = 'Кавалера🙎‍♂️'
+BTN_SEX_WOMAN = 'Женщина🙎‍♀️️'
 
 # генерация кнопок в клавиатуре
 buttons_regist = [(BTN_REGISTRATION, VkKeyboardColor.POSITIVE),
@@ -53,7 +55,9 @@ buttons_choice = [(BTN_LIKE, VkKeyboardColor.POSITIVE),
                   (BTN_DISLIKE, VkKeyboardColor.NEGATIVE),
                   (BTN_NEXT, VkKeyboardColor.POSITIVE)
                   ]
-
+buttons_choice_sex = [(BTN_SEX_MAN, VkKeyboardColor.PRIMARY),
+                      (BTN_SEX_WOMAN, VkKeyboardColor.POSITIVE)
+                      ]
 # Сообщение пользователем.
 
 welcome_message = '\nДобро пожаловать в наш бот для поиска своей второй половинки 💕! \n\n' \
