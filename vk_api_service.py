@@ -133,7 +133,7 @@ class VKAPI:
                 'id': response_dict.get('id'),
                 'first_name': response_dict.get('first_name', None),
                 'last_name': response_dict.get('last_name', None),
-                'city': response_dict.get('city', {}).get('title', None),
+                'city': response_dict.get('city', {}).get('title', None).lower(),
                 'sex': response_dict.get('sex', None),
                 'bdate': bdate
             }
