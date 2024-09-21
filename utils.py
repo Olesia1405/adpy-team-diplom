@@ -170,6 +170,43 @@ class DatabaseUtils(Database):
     def seve_user_candidate(self, data: dict, table_name: str = 'users'):
         return self.insert_data(table_name=table_name, data=data)
 
+    def search_for_candidates_db(self, age: list, sex: int, city: str, user_id: int):
+        """
+            Поиск кандидатов по возрасту (конкретный или диапазон), полу и городу,
+        которых пользователь еще не оценил.
+
+        :param age: Список с двумя элементами [min_age, max_age] или одним элементом [age].
+        :param sex: Пол кандидатов (1 - женский, 2 - мужской).
+        :param city: Город кандидатов.
+        :param user_id: ID пользователя, для которого ищем кандидатов.
+
+        :return: Список кандидатов, которые соответствуют критериям.
+        """
+
+        if len(age) == 1:
+
+            age_condition = "DATE_PART('year', AGE(CURRENT_DATE, birthday)) = %s"
+            age_values = (age[0],)
+        else:
+            age_condition = "DATE_PART('year', AGE(CURRENT_DATE, birthday)) BETWEEN %s AND %s"
+            age_values = (age[0], age[1])
+
+        table_name = 'candidate c'
+        columns = '*'
+        condition = f"""
+        {age_condition}
+        AND gender = %s
+        AND city = %s
+        AND c.id NOT IN (
+            SELECT candidate_id FROM user_candidate WHERE user_id = %s
+        )
+        """
+
+        values = (*age_values, sex, city, user_id)
+
+        candidates = self.select_data(table_name, columns, condition, values)
+        return candidates
+
 
 if __name__ == '__main__':
     r = AuxiliaryUtils()
