@@ -22,7 +22,6 @@
 """
 import logging
 import vk_api
-import re
 
 from time import sleep
 from database import Database

@@ -222,3 +222,5 @@ class Database:
 if __name__ == '__main__':
     r = Database()
     print(r.select_data('word'))
+
+
