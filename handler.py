@@ -24,7 +24,8 @@
        `handler.state_handler(state, event, user_id, user_name, request)`
 """
 import logging
-from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, buttons_choice, welcome_message, BTN_REGISTRATION
+from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, \
+    buttons_choice, welcome_message, BTN_REGISTRATION, buttons_choice_sex, BTN_SEX_MAN
 from utils import DatabaseUtils, AuxiliaryUtils
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class Handler:
         self.create_keyboard = vk_bot.create_keyboard
         self.util_db = DatabaseUtils()
         self.utils_auxiliary = AuxiliaryUtils()
-
+        self.user_data = {}
 
     def message_handler(self, event, user_name: str, request: str):
         """
@@ -80,11 +81,11 @@ class Handler:
             self.send_message(event.user_id, f"{user_name} {info_message}",
                               keyboard=self.create_keyboard(buttons_start))
 
-
         elif request == BTN_FIND_PAIR.lower() and is_user_in_db:
-            self.send_message(event.user_id, f"{user_name} ищем вам пару!",
-                              keyboard=self.create_keyboard(buttons_choice))
-            self.vk_bot.set_user_state(event.user_id, "waiting_for_pair")
+            self.send_message(event.user_id, f"{user_name} Кого вы ищете: "
+                                             f"даму сердца или кавалера?",
+                              keyboard=self.create_keyboard(buttons_choice_sex))
+            self.vk_bot.set_user_state(event.user_id, "waiting_for_sex")
 
         else:
             text = 'Я вас не понял.Активирую главное меню.'
@@ -111,6 +112,24 @@ class Handler:
         :param user_name: str Имя пользователя.
         :param request: str Текст сообщения, отправленного пользователем.
         """
-        if state == "waiting_for_pair":
-            self.send_message(user_id, f"Вы написали: {request}. Ищем вам пару!")
+        if state == "waiting_for_sex":
+            sex = 2 if request == BTN_SEX_MAN.lower() else 1
+            self.user_data[user_id] = {'sex': sex}
+
+            self.send_message(user_id,
+                              "Введите возраст или укажите диапазон возрастов, "
+                              "разделяя значения запятой.")
+            self.vk_bot.set_user_state(user_id, "waiting_for_age")
+
+        elif state == "waiting_for_age":
+            age = request.split(',')
+            self.user_data[user_id].update({'age': age})
+
+            self.send_message(user_id,
+                              "Укажите город в котором искать спутника жизни")
+            self.vk_bot.set_user_state(user_id, "waiting_for_city")
+
+        elif state == "waiting_for_city":
+            self.user_data[user_id].update({'city': request})
             self.vk_bot.set_user_state(user_id, None)
+            self.utils_auxiliary.test(self.user_data, user_id)
