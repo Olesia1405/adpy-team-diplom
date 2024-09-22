@@ -23,7 +23,7 @@ def test_button_constants():
     assert BTN_LIKE == "Нравится👍"
     assert BTN_DISLIKE == "Не нравится👎"
     assert BTN_SEX_MAN == 'Кавалера🙎‍♂️'
-    assert BTN_SEX_WOMAN == 'Женщина🙎‍♀️️'
+    assert BTN_SEX_WOMAN == 'Женщину🙎‍♀️️'
 
 # Тестируем списки кнопок и их цвета
 def test_buttons_regist():
@@ -41,8 +41,7 @@ def test_buttons_start():
 def test_buttons_choice():
     assert buttons_choice == [
         (BTN_LIKE, VkKeyboardColor.POSITIVE),
-        (BTN_DISLIKE, VkKeyboardColor.NEGATIVE),
-        (BTN_NEXT, VkKeyboardColor.POSITIVE)
+        (BTN_DISLIKE, VkKeyboardColor.NEGATIVE)
     ]
 
 def test_buttons_choice_sex():
