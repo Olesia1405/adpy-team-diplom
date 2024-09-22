@@ -55,7 +55,7 @@ def test_message_handler_start_new_user(handler, mock_vk_bot):
 # Тестируем метод message_handler для зарегистрированного пользователя
 def test_message_handler_start_registered_user(handler, mock_vk_bot, mock_db_utils):
     # Настроим, чтобы база данных возвращала существующего пользователя
-    mock_db_utils.check_user_existence_db.return_value = True
+    mock_db_utils.check_user_candidate_existence_db.return_value = True
 
     # Входные данные
     event = MagicMock()

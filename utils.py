@@ -1,5 +1,5 @@
 """
-Будет содержать вспомогательные функци
+Будет содержать вспомогательные функции
 """
 import logging
 import re
@@ -38,24 +38,41 @@ class AuxiliaryUtils:
             (по умолчанию 'users').
         """
         common_data = self.vk_service.get_users_info(user_vk_id)
-        photo_url = self.vk_service.get_top_photos(user_vk_id)
-        photo_id = self._extract_photo_attachment(photo_url) if photo_url else None
-        name = f"{common_data['first_name'] if common_data['first_name'] != 'None' else ''}" \
-               f" {common_data['last_name'] if common_data['last_name'] != 'None' else ''}"
-        data = {
-            'vk_id': common_data['id'],
-            'name': name,
-            'city': common_data['city'],
-            'birthday': common_data['bdate'],
-            'gender': common_data['sex'],
-            'photo_ids': photo_id,
-        }
-        result = self.db_utils.insert_data(table_name, data)
 
-        if result is not None:
-            info_message = 'Регистрация прошла успешно✅'
+        if common_data is not None:
+            photo_url = self.vk_service.get_top_photos(user_vk_id)
+            photo_id = self._extract_photo_attachment(photo_url) if photo_url else None
+            name = f"{common_data['first_name'] if common_data['first_name'] != 'None' else ''}" \
+                   f" {common_data['last_name'] if common_data['last_name'] != 'None' else ''}"
+            data = {
+                'vk_id': common_data['id'],
+                'name': name,
+                'city': common_data['city'],
+                'birthday': common_data['bdate'],
+                'gender': common_data['sex'],
+                'photo_ids': photo_id,
+            }
+            result = self.db_utils.insert_data(table_name, data)
         else:
-            info_message = 'Регистрация провалена⛔'
+            result = None
+
+        if table_name == 'users':
+
+            if result is not None:
+                info_message = 'Регистрация прошла успешно✅'
+
+            elif result is None and common_data is None:
+                info_message = 'У вас закрытый профиль!.Регистрация провалена⛔'
+
+            else:
+                info_message = 'Регистрация провалена⛔'
+
+        else:
+            if common_data is not None:
+                info_message = data
+            else:
+                info_message = None
+                logger.error(f'У пользователя с вк id {user_vk_id} закрытый профиль')
         return info_message
 
     def _extract_photo_attachment(self, photo_url_list: list[str]) -> list[str] | None:
@@ -87,14 +104,84 @@ class AuxiliaryUtils:
 
         return result
 
-    def test(self, user_data: dict, user_vk_id: int):
+    def get_candidate_db(self, user_data: dict, user_vk_id: int) -> list[dict]:
 
-        response = self.vk_service.search_users(user_data[user_vk_id]['age'],
-                                                user_data[user_vk_id]['sex'],
-                                                user_data[user_vk_id]['city'],
+        """
+        Получение списка кандидатов для пользователя из базы данных.
 
-                                                )
-        print(response)
+        Функция ищет кандидатов в базе данных, удовлетворяющих заданным критериям
+        (возраст, пол, город). Если в базе данных недостаточно кандидатов (меньше 10),
+        делает запрос к VK API для получения недостающих кандидатов и добавляет их в базу данных.
+        После этого снова вызывает поиск кандидатов в базе данных и возвращает полный список.
+
+        :param user_data: Словарь с данными пользователей, где ключ - vk_id пользователя,
+                          а значение - словарь с возрастом, полом и городом.
+        :param user_vk_id: VK ID пользователя, для которого необходимо найти кандидатов.
+
+        :return: Список словарей с данными кандидатов (не менее 10).
+        """
+        candidate_list = []
+        candidate_db = self.db_utils.search_for_candidates_db(user_data[user_vk_id]['age'],
+                                                              user_data[user_vk_id]['sex'],
+                                                              user_data[user_vk_id]['city'],
+                                                              user_vk_id
+                                                              )
+        for candidate_data in candidate_db:
+            data = {
+                'id': candidate_data[0],
+                'vk_id': candidate_data[1],
+                'name': candidate_data[2],
+                'city': candidate_data[3],
+                'birthday': candidate_data[4],
+                'gender': candidate_data[5],
+                'photo_ids': candidate_data[6],
+            }
+            candidate_list.append(data)
+        if len(candidate_list) < 10:
+            self.get_candidate_vk_api(user_data, user_vk_id, 10 - len(candidate_list))
+            candidate_list.extend(self.get_candidate_db(user_data, user_vk_id) or [])
+
+        return candidate_list
+
+    def get_candidate_vk_api(self, user_data: dict, user_vk_id: int,
+                             number_records: int, offset: int = 0):
+        """
+            Запрос кандидатов через VK API и добавление их в базу данных.
+
+            Функция делает запрос к VK API для поиска кандидатов по возрасту, полу и городу,
+        исключая тех, кто уже есть в базе данных. Если кандидатов меньше,
+        чем нужно (number_records), функция вызывает себя рекурсивно с увеличенным смещением
+        (offset) для получения оставшихся кандидатов.
+            После получения данных, кандидаты добавляются в базу данных.
+
+        :param user_data: Словарь с данными пользователей, где ключ - vk_id пользователя,
+                          а значение - словарь с возрастом, полом и городом.
+        :param user_vk_id: VK ID пользователя, для которого ищутся кандидаты.
+        :param number_records: Количество недостающих записей, которые нужно получить через VK API.
+        :param offset: Смещение для поиска кандидатов через VK API (по умолчанию 0).
+
+        :return: None.
+        """
+
+        candidates_id = self.vk_service.search_users(user_data[user_vk_id]['age'],
+                                                     user_data[user_vk_id]['sex'],
+                                                     user_data[user_vk_id]['city'],
+                                                     offset=offset
+                                                     )
+        candidates_missing_db = self.db_utils.find_missing_candidates(candidates_id)
+
+        if len(candidates_missing_db) < number_records:
+
+            for candidate_id in candidates_missing_db:
+                self.prepare_user_candidate_data(candidate_id, 'candidate')
+
+            self.get_candidate_vk_api(user_data, user_vk_id,
+                                      number_records - len(candidates_missing_db),
+                                      offset=offset + 1
+                                      )
+        else:
+            for candidate_id in candidates_missing_db:
+                self.prepare_user_candidate_data(candidate_id, 'candidate')
 
 
 class DatabaseUtils(Database):
@@ -156,8 +243,8 @@ class DatabaseUtils(Database):
 
         :param user_vk_id:int Уникальный идентификатор пользователя ВКонтакте.
 
-        :return:int | None Возвращает идентификатор пользователя из базы данных, если он существует,
-                или None, если пользователь не найден.
+        :return:int | None Возвращает идентификатор пользователя из базы данных,
+            если он существует, или None, если пользователь не найден.
         """
         table_name = 'users'
         columns = 'vk_id'
@@ -170,7 +257,7 @@ class DatabaseUtils(Database):
     def seve_user_candidate(self, data: dict, table_name: str = 'users'):
         return self.insert_data(table_name=table_name, data=data)
 
-    def search_for_candidates_db(self, age: list, sex: int, city: str, user_id: int):
+    def search_for_candidates_db(self, age: list, sex: int, city: str, user_vk_id: int):
         """
             Поиск кандидатов по возрасту (конкретный или диапазон), полу и городу,
         которых пользователь еще не оценил.
@@ -178,7 +265,7 @@ class DatabaseUtils(Database):
         :param age: Список с двумя элементами [min_age, max_age] или одним элементом [age].
         :param sex: Пол кандидатов (1 - женский, 2 - мужской).
         :param city: Город кандидатов.
-        :param user_id: ID пользователя, для которого ищем кандидатов.
+        :param user_vk_id: VK_ID пользователя, для которого ищем кандидатов.
 
         :return: Список кандидатов, которые соответствуют критериям.
         """
@@ -196,13 +283,14 @@ class DatabaseUtils(Database):
         condition = f"""
         {age_condition}
         AND gender = %s
-        AND city = %s
+        AND city ILIKE %s
         AND c.id NOT IN (
-            SELECT candidate_id FROM user_candidate WHERE user_id = %s
+            SELECT candidate_id FROM user_candidate WHERE user_id = (
+                SELECT u.id FROM users u WHERE u.vk_id = %s)
         )
         """
 
-        values = (*age_values, sex, city, user_id)
+        values = (*age_values, sex, city, user_vk_id)
 
         candidates = self.select_data(table_name, columns, condition, values)
         return candidates

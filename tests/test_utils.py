@@ -54,7 +54,7 @@ def test_check_user_existence_db():
     db_utils.select_data = MagicMock(return_value=123)
     
     # Вызов метода
-    result = db_utils.check_user_existence_db(123)
+    result = db_utils.check_user_candidate_existence_db(123)
     
     # Проверка результата
     assert result == 123
