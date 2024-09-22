@@ -76,7 +76,7 @@ class Handler:
             else:
                 self.send_message(event.user_id, f"Привет, {user_name}! 👋",
                                   keyboard=self.create_keyboard(buttons_start))
-        elif request == BTN_HELP:
+        elif request == BTN_HELP.lower():
             self.send_message(event.user_id, help_message,
                               keyboard=self.create_keyboard(buttons_start))
 
