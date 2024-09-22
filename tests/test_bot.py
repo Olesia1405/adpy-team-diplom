@@ -63,7 +63,7 @@ def test_get_user_name(mock_get_user_name):
 
 # Тестируем установку и получение состояния пользователя
 def test_user_state():
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
     state = "some_state"
 
