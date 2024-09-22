@@ -7,60 +7,68 @@ test_user_state: Проверяет методы установки и полу�
 
 import pytest
 from unittest.mock import MagicMock, patch
-from vk_api.keyboard import VkKeyboard
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from bot import VKBot
+from config import VK_GROUP_TOKEN
+
+
 
 # Тестируем создание клавиатуры
 def test_create_keyboard():
-    bot = VKBot("test_token")
-    
+    bot = VKBot(VK_GROUP_TOKEN)
+
     # Проверка клавиатуры с одной кнопкой
-    buttons = [("Button1", "primary")]
+    buttons = [("Button1", VkKeyboardColor.PRIMARY)]
     keyboard = bot.create_keyboard(buttons)
-    
+
     assert isinstance(keyboard, VkKeyboard)
-    assert "Button1" in keyboard.lines[0][0].label
-    assert keyboard.lines[0][0].color == "primary"
-    
+    assert keyboard.lines[0][0]['action']['label'] == "Button1"  # Проверка на равенство
+    assert keyboard.lines[0][0]['color'] == VkKeyboardColor.PRIMARY.value  # Проверка цвета
+
     # Проверка клавиатуры с несколькими кнопками
-    buttons = [("Button1", "primary"), ("Button2", "secondary")]
+    buttons = [("Button1", VkKeyboardColor.PRIMARY), ("Button2", VkKeyboardColor.SECONDARY)]
     keyboard = bot.create_keyboard(buttons)
-    
-    assert "Button2" in keyboard.lines[1][0].label
+
+    assert len(keyboard.lines) == 1  # Убедитесь, что все кнопки на одной строке
+    assert len(keyboard.lines[0]) == 2  # Две кнопки на одной строке
+    assert keyboard.lines[0][1]['action']['label'] == "Button2"  # Проверка на равенство
+    assert keyboard.lines[0][1]['color'] == VkKeyboardColor.SECONDARY.value  # Проверка цвета
 
 # Тестируем отправку сообщения
 @patch('bot.VKBot.send_message')
 def test_send_message(mock_send_message):
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
     message = "Test message"
-    
+
     bot.send_message(user_id, message)
-    
+
     mock_send_message.assert_called_once_with(user_id, message)
+
 
 # Тестируем получение имени пользователя
 @patch('bot.VKBot.get_user_name')
 def test_get_user_name(mock_get_user_name):
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
-    
+
     # Задаем фиктивный результат для вызова метода API
     mock_get_user_name.return_value = "Ivan Ivanov"
-    
+
     name = bot.get_user_name(user_id)
-    
+
     assert name == "Ivan Ivanov"
     mock_get_user_name.assert_called_once_with(user_id)
+
 
 # Тестируем установку и получение состояния пользователя
 def test_user_state():
     bot = VKBot("test_token")
     user_id = 123
     state = "some_state"
-    
+
     bot.set_user_state(user_id, state)
-    
+
     assert bot.get_user_state(user_id) == state
 
     # Проверка состояния, если оно не установлено
