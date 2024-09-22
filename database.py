@@ -205,6 +205,7 @@ class Database:
         :param query: Строка SQL-запроса.
         :param params: Параметры для вставки в запрос (опционально).
         :param fetch: Если True, будет выполнен fetchall() для получения данных.
+
         :return: Список кортежей с данными, если fetch=True. Иначе None.
         """
         try:
@@ -222,5 +223,3 @@ class Database:
 if __name__ == '__main__':
     r = Database()
     print(r.select_data('word'))
-
-

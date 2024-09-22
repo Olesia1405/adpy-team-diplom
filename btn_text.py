@@ -41,7 +41,7 @@ BTN_LIKE = "Нравится👍"
 BTN_DISLIKE = "Не нравится👎"
 BTN_NEXT = "Следующий👉"
 BTN_SEX_MAN = 'Кавалера🙎‍♂️'
-BTN_SEX_WOMAN = 'Женщина🙎‍♀️️'
+BTN_SEX_WOMAN = 'Женщину🙎‍♀️️'
 
 # генерация кнопок в клавиатуре
 buttons_regist = [(BTN_REGISTRATION, VkKeyboardColor.POSITIVE),

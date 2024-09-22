@@ -82,7 +82,7 @@ class Handler:
                               keyboard=self.create_keyboard(buttons_start))
 
         elif request == BTN_FIND_PAIR.lower() and is_user_in_db:
-            self.send_message(event.user_id, f"{user_name} Кого вы ищете: "
+            self.send_message(event.user_id, f"{user_name} кого вы ищете: "
                                              f"даму сердца или кавалера?",
                               keyboard=self.create_keyboard(buttons_choice_sex))
             self.vk_bot.set_user_state(event.user_id, "waiting_for_sex")
@@ -132,4 +132,4 @@ class Handler:
         elif state == "waiting_for_city":
             self.user_data[user_id].update({'city': request})
             self.vk_bot.set_user_state(user_id, None)
-            self.utils_auxiliary.test(self.user_data, user_id)
+            self.utils_auxiliary.get_candidate_db(self.user_data, user_id)
