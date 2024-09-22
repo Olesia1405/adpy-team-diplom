@@ -11,7 +11,7 @@ import pytest
 from vk_api.keyboard import VkKeyboardColor
 from btn_text import (
     BTN_REGISTRATION, BTN_FIND_PAIR, BTN_HELP, BTN_LIKE, BTN_DISLIKE,
-    BTN_NEXT, BTN_SEX_MAN, BTN_SEX_WOMAN, buttons_regist, buttons_start,
+    BTN_SEX_MAN, BTN_SEX_WOMAN, buttons_regist, buttons_start,
     buttons_choice, buttons_choice_sex, welcome_message
 )
 
@@ -22,7 +22,6 @@ def test_button_constants():
     assert BTN_HELP == "Помощь🆘"
     assert BTN_LIKE == "Нравится👍"
     assert BTN_DISLIKE == "Не нравится👎"
-    assert BTN_NEXT == "Следующий👉"
     assert BTN_SEX_MAN == 'Кавалера🙎‍♂️'
     assert BTN_SEX_WOMAN == 'Женщина🙎‍♀️️'
 
