@@ -67,7 +67,7 @@ def test_save_user_candidate():
     db_utils.insert_data = MagicMock(return_value=1)
     
     # Вызов метода
-    result = db_utils.seve_user_candidate(data)
+    result = db_utils.save_user_candidate(data)
     
     # Проверка результата
     assert result == 1

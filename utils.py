@@ -195,6 +195,48 @@ class AuxiliaryUtils:
             for candidate_id in candidates_missing_db:
                 self.prepare_user_candidate_data(candidate_id, 'candidate')
 
+    def creating_kadiat_message(self, candidate: dict) -> tuple[str, list]:
+        """
+            Создает сообщение и список фотографий для кандидата.
+
+            Функция формирует текст сообщения с информацией о кандидате
+        (имя, город, возраст и ссылка на профиль ВКонтакте), а также возвращает
+        список идентификаторов фотографий кандидата.
+
+        :param candidate: dict Словарь с данными о кандидате, включая ключи:
+                         'name' (имя), 'city' (город), 'age' (возраст),
+                         'vk_id' (ID кандидата ВКонтакте) и 'photo_ids' (список ID фотографий).
+
+        :return: tuple Состоит из:
+                 - str: Сообщение с информацией о кандидате.
+                 - list: Список идентификаторов фотографий кандидата.
+        """
+        message = (f"Имя: {candidate['name']}\n"
+                   f"Город: {candidate['city']}\n"
+                   f"Возраст: {candidate['age']}\n"
+                   f"https://vk.com/id{candidate['vk_id']}"
+                   )
+        photo_id_list = candidate['photo_ids']
+        return message, photo_id_list
+
+    def adding_candidate_status(self, candidate_id: int, user_vk_id: int, preference: bool):
+        """
+        Добавляет запись в таблицу user_candidate, чтобы сохранить статус кандидата
+        (например, лайк или дизлайк) для конкретного пользователя.
+
+        :param candidate_id: Идентификатор кандидата.
+        :param user_vk_id: VK ID пользователя, который оценил кандидата.
+        :param preference: True для лайка, False для дизлайка.
+        """
+
+        user_id = self.db_utils.select_data('users', 'id', "vk_id = %s", (user_vk_id,))
+        data = {
+            'user_id': user_id[0],
+            'candidate_id': candidate_id,
+            'preference': preference
+        }
+        self.db_utils.insert_data('user_candidate', data)
+
 
 class DatabaseUtils(Database):
     """
@@ -266,7 +308,18 @@ class DatabaseUtils(Database):
         result = self.select_data(table_name, columns, condition, values)
         return result if result else None
 
-    def seve_user_candidate(self, data: dict, table_name: str = 'users'):
+    def save_user_candidate(self, data: dict, table_name: str = 'users'):
+        """
+        Сохраняет данные о пользователе или кандидате в указанную таблицу.
+
+        Функция вставляет данные о пользователе или кандидате в таблицу базы данных.
+        По умолчанию данные сохраняются в таблицу 'users', но можно указать другую таблицу.
+
+        :param data: dict Словарь с данными для сохранения. Ключи словаря соответствуют названиям
+                     колонок в таблице, а значения — это данные для вставки в соответствующие поля.
+        :param table_name: str Название таблицы, в которую будут вставлены данные.
+                           По умолчанию используется таблица 'users'.
+        """
         return self.insert_data(table_name=table_name, data=data)
 
     def find_missing_candidates(self, vk_ids: list):
