@@ -32,5 +32,6 @@ def config_logging(level=logging.INFO):
         format="[%(asctime)s.%(msecs)03d] %(module)s:%(lineno)d %(levelname)10s - %(message)s"
 
     )
-    logger = logging.getLogger(__name__)
-    logger.info(f"Текущий уровень логгирования: {logger.getEffectiveLevel()}")
+    logger = logging.getLogger()  # Корневой логгер
+    logger.setLevel(level)
+    logger.info(f"Текущий уровень логирования: {logger.getEffectiveLevel()}")
