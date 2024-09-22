@@ -4,6 +4,7 @@
 import logging
 import re
 
+from datetime import datetime
 from database import Database
 from vk_api_service import VKAPI
 
@@ -127,12 +128,13 @@ class AuxiliaryUtils:
                                                               user_vk_id
                                                               )
         for candidate_data in candidate_db:
+            age = self._calculate_age(candidate_data[4])
             data = {
                 'id': candidate_data[0],
                 'vk_id': candidate_data[1],
                 'name': candidate_data[2],
                 'city': candidate_data[3],
-                'birthday': candidate_data[4],
+                'age': age,
                 'gender': candidate_data[5],
                 'photo_ids': candidate_data[6],
             }
@@ -142,6 +144,16 @@ class AuxiliaryUtils:
             candidate_list.extend(self.get_candidate_db(user_data, user_vk_id) or [])
 
         return candidate_list
+
+    def _calculate_age(self, birthday):
+        """
+        Рассчитывает возраст на основе даты рождения.
+
+        :param birthday: Дата рождения (тип datetime.date).
+        :return: Возраст (количество полных лет).
+        """
+        today = datetime.today().date()
+        return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
 
     def get_candidate_vk_api(self, user_data: dict, user_vk_id: int,
                              number_records: int, offset: int = 0):
@@ -256,6 +268,30 @@ class DatabaseUtils(Database):
 
     def seve_user_candidate(self, data: dict, table_name: str = 'users'):
         return self.insert_data(table_name=table_name, data=data)
+
+    def find_missing_candidates(self, vk_ids: list):
+        """
+        Проверка, какие кандидаты из списка vk_ids отсутствуют в таблице candidate.
+
+        :param vk_ids: Список vk_id кандидатов для проверки.
+        :return: Список vk_id кандидатов, которых нет в базе данных.
+        """
+        if not vk_ids:
+            return []
+
+        query = f"""
+        SELECT missing.vk_id 
+        FROM (VALUES {', '.join(['(%s)' for _ in vk_ids])}) AS missing(vk_id)
+        LEFT JOIN candidate c ON missing.vk_id = c.vk_id
+        WHERE c.vk_id IS NULL
+        """
+        missing_candidates = self.execute_query(query, params=tuple(vk_ids), fetch=True)
+
+        if missing_candidates is not None:
+            result = [row[0] for row in missing_candidates] if missing_candidates else []
+        else:
+            result = missing_candidates
+        return result
 
     def search_for_candidates_db(self, age: list, sex: int, city: str, user_vk_id: int):
         """
