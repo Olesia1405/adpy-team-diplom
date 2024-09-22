@@ -114,9 +114,7 @@ class VKBot:
         """
         attachment = None
         if photo_id_list:
-            attachment = self._extract_photo_attachment(photo_id_list)
-            if not attachment:
-                logger.warning(f"Невозможно извлечь вложение из ссылки: {photo_id_list}")
+            attachment = photo_id_list
 
         self.vk.messages.send(
             user_id=user_id,
