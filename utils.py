@@ -140,8 +140,11 @@ class AuxiliaryUtils:
             }
             candidate_list.append(data)
         if len(candidate_list) < 10:
-            self.get_candidate_vk_api(user_data, user_vk_id, 10 - len(candidate_list))
-            candidate_list.extend(self.get_candidate_db(user_data, user_vk_id) or [])
+            result = self.get_candidate_vk_api(user_data, user_vk_id, 10 - len(candidate_list))
+            if result:
+                candidate_list.extend(self.get_candidate_db(user_data, user_vk_id) or [])
+            else:
+                candidate_list = None
 
         return candidate_list
 
@@ -180,21 +183,25 @@ class AuxiliaryUtils:
                                                      user_data[user_vk_id]['city'],
                                                      offset=offset
                                                      )
-        candidates_missing_db = self.db_utils.find_missing_candidates(candidates_id)
+        if candidates_id is not None:
+            candidates_missing_db = self.db_utils.find_missing_candidates(candidates_id)
 
-        if len(candidates_missing_db) < number_records:
+            if len(candidates_missing_db) < number_records:
 
-            for candidate_id in candidates_missing_db:
-                self.prepare_user_candidate_data(candidate_id, 'candidate')
+                for candidate_id in candidates_missing_db:
+                    self.prepare_user_candidate_data(candidate_id, 'candidate')
 
-            self.get_candidate_vk_api(user_data, user_vk_id,
-                                      number_records - len(candidates_missing_db),
-                                      offset=offset + 1
-                                      )
+                self.get_candidate_vk_api(user_data, user_vk_id,
+                                          number_records - len(candidates_missing_db),
+                                          offset=offset + 1
+                                          )
+            else:
+                for candidate_id in candidates_missing_db:
+                    self.prepare_user_candidate_data(candidate_id, 'candidate')
+            return True
+
         else:
-            for candidate_id in candidates_missing_db:
-                self.prepare_user_candidate_data(candidate_id, 'candidate')
-
+            return None
     def creating_kadiat_message(self, candidate: dict) -> tuple[str, list]:
         """
             Создает сообщение и список фотографий для кандидата.
