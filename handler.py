@@ -66,7 +66,8 @@ class Handler:
 
         :param event: Объект события из VK API, содержащий информацию о сообщении.
         :param user_name: str Имя пользователя, которому бот отвечает.
-        :param request: str Текст сообщения, отправленного пользователем.        """
+        :param request: str Текст сообщения, отправленного пользователем.
+        """
 
         is_user_in_db = self.util_db.check_user_existence_db(event.user_id)
         if request == "начать":
@@ -179,11 +180,30 @@ class Handler:
                                   keyboard=self.create_keyboard(buttons_start)
                                   )
 
-
     def _filling_user_candidate_data_dict(self, user_data: dict, user_vk_id: int):
+        """
+        Заполняет словарь данных кандидатов для указанного пользователя.
+
+        Получает список кандидатов для пользователя с помощью вспомогательной функции,
+        после чего сохраняет этот список в атрибуте `user_candidate_data` с ключом, соответствующим
+        VK ID пользователя.
+
+        :param user_data: Словарь с данными пользователя.
+        :param user_vk_id: VK ID пользователя, для которого нужно получить список кандидатов.
+        """
         candidate_list = self.utils_auxiliary.get_candidate_db(user_data, user_vk_id)
         self.user_candidate_data[user_vk_id] = candidate_list
 
     def _transfer_show(self, event, user_name: str):
+        """
+        Передает запрос на отображение кандидатов.
+
+        Вызывает метод `message_handler` с переданным событием, именем пользователя и
+        запросом на отображение списка кандидатов.
+
+        :param event: Объект события из VK API, содержащий информацию о текущем запросе
+                     пользователя.
+        :param user_name: Имя пользователя, которому будет отображаться сообщение.
+        """
         request = 'show'
         self.message_handler(event, user_name, request)
