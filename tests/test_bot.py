@@ -9,10 +9,11 @@ import pytest
 from unittest.mock import MagicMock, patch
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from bot import VKBot
+from config import VK_GROUP_TOKEN
 
 # Тестируем создание клавиатуры
 def test_create_keyboard():
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     
     # Проверка клавиатуры с одной кнопкой
     buttons = [("Button1", VkKeyboardColor.PRIMARY)]
