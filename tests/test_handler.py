@@ -10,7 +10,11 @@ test_state_handler_waiting_for_city: Тестирует обработку со�
 import pytest
 from unittest.mock import MagicMock
 from handler import Handler
-from btn_text import buttons_regist, buttons_start, buttons_choice_sex, BTN_REGISTRATION, BTN_FIND_PAIR, BTN_SEX_MAN
+from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+
+from btn_text import buttons_regist, buttons_start, \
+    buttons_choice_sex, BTN_REGISTRATION, BTN_FIND_PAIR, BTN_SEX_MAN, welcome_message
 
 # Пример фикстуры для мока объекта VKBot
 @pytest.fixture
@@ -47,7 +51,7 @@ def test_message_handler_start_new_user(handler, mock_vk_bot):
 
     # Проверяем, что методы send_message и create_keyboard вызываются с ожидаемыми аргументами
     mock_vk_bot.send_message.assert_called_with(
-        123, f"Привет, {user_name}! 👋 {handler.utils_auxiliary.welcome_message}",
+        123, f"Привет, {user_name}! 👋 {welcome_message}",
         keyboard='keyboard_mock'
     )
     mock_vk_bot.create_keyboard.assert_called_with(buttons_regist)
@@ -55,7 +59,7 @@ def test_message_handler_start_new_user(handler, mock_vk_bot):
 # Тестируем метод message_handler для зарегистрированного пользователя
 def test_message_handler_start_registered_user(handler, mock_vk_bot, mock_db_utils):
     # Настроим, чтобы база данных возвращала существующего пользователя
-    mock_db_utils.check_user_candidate_existence_db.return_value = True
+    mock_db_utils.check_user_existence_db.return_value = True
 
     # Входные данные
     event = MagicMock()
@@ -133,7 +137,16 @@ def test_state_handler_waiting_for_age(handler, mock_vk_bot):
     assert handler.user_data[user_id]['age'] == ['25', '30']
 
 # Тестируем state_handler с состоянием "waiting_for_city"
-def test_state_handler_waiting_for_city(handler, mock_vk_bot):
+from unittest.mock import patch, MagicMock
+
+# Тестируем state_handler с состоянием "waiting_for_city"
+# Тестируем state_handler с состоянием "waiting_for_city"
+@patch('utils.AuxiliaryUtils.get_candidate_db')  # Патч для get_candidate_db
+@patch.object(Handler, 'message_handler')  # Патч для message_handler
+def test_state_handler_waiting_for_city(mock_message_handler, mock_get_candidate_db, handler, mock_vk_bot):
+    # Патчим метод set_user_state на объекте vk_bot
+    handler.vk_bot.set_user_state = MagicMock()
+
     # Входные данные
     event = MagicMock()
     user_id = 123
@@ -144,10 +157,17 @@ def test_state_handler_waiting_for_city(handler, mock_vk_bot):
     # Устанавливаем начальные данные пользователя
     handler.user_data[user_id] = {}
 
+    # Инициализация user_candidate_data для пользователя
+    handler.user_candidate_data[user_id] = {}  # Добавляем пустой словарь
+
     # Вызов метода
     handler.state_handler(state, event, user_id, user_name, request)
 
-    # Проверяем, что данные о городе обновляются и состояние сбрасывается
-    assert handler.user_data[user_id]['city'] == "Москва"
-    mock_vk_bot.set_user_state.assert_called_with(user_id, None)
-    handler.utils_auxiliary.test.assert_called_with(handler.user_data, user_id)
+    # Проверяем, что данные о городе обновляются
+    assert handler.user_data[user_id]['city'] == request  # Проверка, что город установлен в "Москва"
+
+    # Проверяем, что set_user_state был вызван
+    handler.vk_bot.set_user_state.assert_called_with(user_id, None)
+
+    # Проверяем, что message_handler был вызван с правильными аргументами
+    mock_message_handler.assert_called_once_with(event, user_name, 'show')
