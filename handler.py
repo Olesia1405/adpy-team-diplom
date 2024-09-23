@@ -26,7 +26,7 @@
 import logging
 from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, \
     buttons_choice, welcome_message, BTN_REGISTRATION, \
-    buttons_choice_sex, BTN_SEX_MAN, BTN_LIKE, BTN_HELP, help_message
+    buttons_choice_sex, BTN_SEX_MAN, BTN_LIKE, BTN_HELP, help_message, BTN_DISLIKE
 from utils import DatabaseUtils, AuxiliaryUtils
 
 logger = logging.getLogger(__name__)
@@ -93,18 +93,25 @@ class Handler:
             self.vk_bot.set_user_state(event.user_id, "waiting_for_sex")
 
         elif request == 'show':
-            try:
-                candidate = self.user_candidate_data[event.user_id][0]
-                massage, photo_id_list = self.utils_auxiliary.creating_kadiat_message(candidate)
+            if self.user_candidate_data[event.user_id]:
+                try:
+                    candidate = self.user_candidate_data[event.user_id][0]
+                    massage, photo_id_list = self.utils_auxiliary.creating_kadiat_message(candidate)
 
-                self.send_message(event.user_id, massage,
-                                  keyboard=self.create_keyboard(buttons_choice),
-                                  photo_id_list=photo_id_list
+                    self.send_message(event.user_id, massage,
+                                      keyboard=self.create_keyboard(buttons_choice),
+                                      photo_id_list=photo_id_list
+                                      )
+                finally:
+                    self._filling_user_candidate_data_dict(self.user_data, event.user_id)
+
+                self.vk_bot.set_user_state(event.user_id, "waiting_for_like_dislike")
+
+            else:
+                self.send_message(event.user_id, 'Город вы указали не верно. Попробуйте еще раз',
+                                  keyboard=self.create_keyboard(buttons_start)
                                   )
-            finally:
-                self._filling_user_candidate_data_dict(self.user_data, event.user_id)
-
-            self.vk_bot.set_user_state(event.user_id, "waiting_for_like_dislike")
+                self.vk_bot.set_user_state(event.user_id, None)
 
         else:
             text = 'Я вас не понял.Активирую главное меню.'
@@ -161,12 +168,22 @@ class Handler:
 
                 self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, True)
                 del self.user_candidate_data[event.user_id][0]
-            else:
+                self._transfer_show(event, user_name)
+
+            elif request == BTN_DISLIKE.lower():
                 self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, False)
                 del self.user_candidate_data[event.user_id][0]
-            request = 'show'
-            self.message_handler(event, user_name, request)
+                self._transfer_show(event, user_name)
+            else:
+                self.send_message(event.user_id, 'Не ожиданий ответ, перенаправляю в главное меню',
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+
 
     def _filling_user_candidate_data_dict(self, user_data: dict, user_vk_id: int):
         candidate_list = self.utils_auxiliary.get_candidate_db(user_data, user_vk_id)
         self.user_candidate_data[user_vk_id] = candidate_list
+
+    def _transfer_show(self, event, user_name: str):
+        request = 'show'
+        self.message_handler(event, user_name, request)
