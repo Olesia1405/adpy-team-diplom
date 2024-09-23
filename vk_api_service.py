@@ -212,7 +212,7 @@ class VKAPI:
         city_id = self._get_city_id(city_name)
         if city_id is None:
             logger.error(f"Не удалось получить идентификатор города для {city_name}")
-            return []
+            return None
 
         if len(age) > 1:
             age_from = age[0]
