@@ -9,10 +9,11 @@ import pytest
 from unittest.mock import MagicMock, patch
 from vk_api.keyboard import VkKeyboard
 from bot import VKBot
+from config import VK_GROUP_TOKEN
 
 # Тестируем создание клавиатуры
 def test_create_keyboard():
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     
     # Проверка клавиатуры с одной кнопкой
     buttons = [("Button1", "primary")]
@@ -31,7 +32,7 @@ def test_create_keyboard():
 # Тестируем отправку сообщения
 @patch('bot.VKBot.send_message')
 def test_send_message(mock_send_message):
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
     message = "Test message"
     
@@ -42,7 +43,7 @@ def test_send_message(mock_send_message):
 # Тестируем получение имени пользователя
 @patch('bot.VKBot.get_user_name')
 def test_get_user_name(mock_get_user_name):
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
     
     # Задаем фиктивный результат для вызова метода API
@@ -55,7 +56,7 @@ def test_get_user_name(mock_get_user_name):
 
 # Тестируем установку и получение состояния пользователя
 def test_user_state():
-    bot = VKBot("test_token")
+    bot = VKBot(VK_GROUP_TOKEN)
     user_id = 123
     state = "some_state"
     

@@ -19,7 +19,7 @@ Mocking внешних зависимостей:
 
 import pytest
 from unittest import mock
-from database import Database  # предположим, что модуль сохранен как database.py
+from database import Database  
 
 
 @pytest.fixture
