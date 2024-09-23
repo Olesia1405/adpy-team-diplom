@@ -25,7 +25,8 @@
 """
 import logging
 from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, \
-    buttons_choice, welcome_message, BTN_REGISTRATION, buttons_choice_sex, BTN_SEX_MAN
+    buttons_choice, welcome_message, BTN_REGISTRATION, \
+    buttons_choice_sex, BTN_SEX_MAN, BTN_LIKE, BTN_HELP, help_message
 from utils import DatabaseUtils, AuxiliaryUtils
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class Handler:
         self.util_db = DatabaseUtils()
         self.utils_auxiliary = AuxiliaryUtils()
         self.user_data = {}
+        self.user_candidate_data = {}
 
     def message_handler(self, event, user_name: str, request: str):
         """
@@ -74,6 +76,9 @@ class Handler:
             else:
                 self.send_message(event.user_id, f"Привет, {user_name}! 👋",
                                   keyboard=self.create_keyboard(buttons_start))
+        elif request == BTN_HELP.lower():
+            self.send_message(event.user_id, help_message,
+                              keyboard=self.create_keyboard(buttons_start))
 
         elif request == BTN_REGISTRATION.lower():
             info_message = self.utils_auxiliary.prepare_user_candidate_data(event.user_id)
@@ -86,6 +91,20 @@ class Handler:
                                              f"даму сердца или кавалера?",
                               keyboard=self.create_keyboard(buttons_choice_sex))
             self.vk_bot.set_user_state(event.user_id, "waiting_for_sex")
+
+        elif request == 'show':
+            try:
+                candidate = self.user_candidate_data[event.user_id][0]
+                massage, photo_id_list = self.utils_auxiliary.creating_kadiat_message(candidate)
+
+                self.send_message(event.user_id, massage,
+                                  keyboard=self.create_keyboard(buttons_choice),
+                                  photo_id_list=photo_id_list
+                                  )
+            finally:
+                self._filling_user_candidate_data_dict(self.user_data, event.user_id)
+
+            self.vk_bot.set_user_state(event.user_id, "waiting_for_like_dislike")
 
         else:
             text = 'Я вас не понял.Активирую главное меню.'
@@ -131,5 +150,23 @@ class Handler:
 
         elif state == "waiting_for_city":
             self.user_data[user_id].update({'city': request})
+            self._filling_user_candidate_data_dict(self.user_data, user_id)
             self.vk_bot.set_user_state(user_id, None)
-            self.utils_auxiliary.get_candidate_db(self.user_data, user_id)
+            request = 'show'
+            self.message_handler(event, user_name, request)
+
+        elif state == "waiting_for_like_dislike":
+            candidate_id = self.user_candidate_data[event.user_id][0]['id']
+            if request == BTN_LIKE.lower():
+
+                self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, True)
+                del self.user_candidate_data[event.user_id][0]
+            else:
+                self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, False)
+                del self.user_candidate_data[event.user_id][0]
+            request = 'show'
+            self.message_handler(event, user_name, request)
+
+    def _filling_user_candidate_data_dict(self, user_data: dict, user_vk_id: int):
+        candidate_list = self.utils_auxiliary.get_candidate_db(user_data, user_vk_id)
+        self.user_candidate_data[user_vk_id] = candidate_list

@@ -11,7 +11,7 @@ btn_text.py
 - BTN_HELP: Текст кнопки для получения помощи.
 - BTN_LIKE: Текст кнопки "Нравится".
 - BTN_DISLIKE: Текст кнопки "Не нравится".
-- BTN_NEXT: Текст кнопки "Следующий".
+
 
 Списки кнопок:
 ---------------
@@ -39,21 +39,19 @@ BTN_FIND_PAIR = "Найти пару💓"
 BTN_HELP = "Помощь🆘"
 BTN_LIKE = "Нравится👍"
 BTN_DISLIKE = "Не нравится👎"
-BTN_NEXT = "Следующий👉"
 BTN_SEX_MAN = 'Кавалера🙎‍♂️'
 BTN_SEX_WOMAN = 'Женщину🙎‍♀️️'
 
 # генерация кнопок в клавиатуре
 buttons_regist = [(BTN_REGISTRATION, VkKeyboardColor.POSITIVE),
-                (BTN_HELP, VkKeyboardColor.NEGATIVE)
-                ]
+                  (BTN_HELP, VkKeyboardColor.NEGATIVE)
+                  ]
 buttons_start = [(BTN_FIND_PAIR, VkKeyboardColor.POSITIVE),
-                (BTN_HELP, VkKeyboardColor.NEGATIVE)
-                ]
+                 (BTN_HELP, VkKeyboardColor.NEGATIVE)
+                 ]
 
 buttons_choice = [(BTN_LIKE, VkKeyboardColor.POSITIVE),
-                  (BTN_DISLIKE, VkKeyboardColor.NEGATIVE),
-                  (BTN_NEXT, VkKeyboardColor.POSITIVE)
+                  (BTN_DISLIKE, VkKeyboardColor.NEGATIVE)
                   ]
 buttons_choice_sex = [(BTN_SEX_MAN, VkKeyboardColor.PRIMARY),
                       (BTN_SEX_WOMAN, VkKeyboardColor.POSITIVE)
@@ -65,3 +63,5 @@ welcome_message = '\nДобро пожаловать в наш бот для п�
                   'Нажми "Найти пару 💓", чтобы начать поиск! Если что-то непонятно — ' \
                   'всегда можно нажать на "Помощь 🆘".\n\n' \
                   'Удачи в поиске, надеемся, что здесь ты найдёшь именно того, кого ищешь! 💫'
+
+help_message = "что то будет о помощи"

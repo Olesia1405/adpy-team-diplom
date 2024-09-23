@@ -28,7 +28,7 @@ from database import Database
 from vk_api_service import VKAPI
 from config import config_logging, VK_GROUP_TOKEN
 from vk_api.longpoll import VkLongPoll, VkEventType
-from vk_api.keyboard import VkKeyboard
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.utils import get_random_id
 from handler import Handler
 from utils import DatabaseUtils
@@ -73,7 +73,7 @@ class VKBot:
         self.user_states = {}
         logger.info("Бот успешно инициализирован")
 
-    def create_keyboard(self, buttons: list[tuple[str, str]] = None,
+    def create_keyboard(self, buttons: list[tuple[str, VkKeyboardColor]] = None,
                         one_time: bool = True) -> VkKeyboard:
         """
         Создание универсальной клавиатуры с возможностью добавления произвольных кнопок.
@@ -85,7 +85,7 @@ class VKBot:
         keyboard = VkKeyboard(one_time=one_time)
 
         for name, color in buttons:
-            keyboard.add_button(name, color=color)
+            keyboard.add_button(name, color=color.value)
 
         return keyboard
 
@@ -114,9 +114,7 @@ class VKBot:
         """
         attachment = None
         if photo_id_list:
-            attachment = self._extract_photo_attachment(photo_id_list)
-            if not attachment:
-                logger.warning(f"Невозможно извлечь вложение из ссылки: {photo_id_list}")
+            attachment = photo_id_list
 
         self.vk.messages.send(
             user_id=user_id,
