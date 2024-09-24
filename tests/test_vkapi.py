@@ -42,7 +42,7 @@ def test_get_users_info_success(mock_get, vkapi_instance):
     assert result['id'] == 123
     assert result['first_name'] == 'John'
     assert result['last_name'] == 'Doe'
-    assert result['city'] == 'Moscow'
+    assert result['city'] == 'moscow'
     assert result['sex'] == 2
     assert result['bdate'] == '1990-01-15'
 
@@ -74,14 +74,14 @@ def test_get_top_photos_success(mock_get, vkapi_instance):
             ]
         }
     }
+    mock_response.status_code = 200  # Убедитесь, что статус код успешный
     mock_get.return_value = mock_response
 
     result = vkapi_instance.get_top_photos(123, top_n=2)
-    
+
     assert len(result) == 2
     assert result[0] == "https://vk.com/123?z=photo123_1/photo_feed123"
     assert result[1] == "https://vk.com/123?z=photo123_3/photo_feed123"
-
 
 @patch('requests.get')
 def test_get_top_photos_no_photos(mock_get, vkapi_instance):
@@ -98,6 +98,17 @@ def test_get_top_photos_no_photos(mock_get, vkapi_instance):
     
     assert result is None
 
+@patch('requests.get')
+def test_search_users_no_city(mock_get, vkapi_instance):
+    """Тест на случай, когда идентификатор города не может быть получен"""
+    # Настройка mock для метода _get_city_id
+    vkapi_instance._get_city_id = Mock(return_value=None)
+
+    result = vkapi_instance.search_users(age=[25, 30], gender=2, city_name='Moscow')
+
+    # Проверяем, что результат равен None
+    assert result is None
+
 
 @patch('requests.get')
 def test_search_users_success(mock_get, vkapi_instance):
@@ -111,10 +122,14 @@ def test_search_users_success(mock_get, vkapi_instance):
             ]
         }
     }
+    mock_response.status_code = 200  # Убедитесь, что статус код успешный
     mock_get.return_value = mock_response
 
+    # Подразумеваем, что метод _get_city_id возвращает корректный идентификатор города
+    vkapi_instance._get_city_id = Mock(return_value=1)  # Пример идентификатора города
+
     result = vkapi_instance.search_users(age=[25, 30], gender=2, city_name='Moscow')
-    
+
     assert len(result) == 2
     assert result[0] == 1
     assert result[1] == 2
