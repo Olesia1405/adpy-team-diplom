@@ -18,8 +18,10 @@ Mocking внешних зависимостей:
 """
 
 import pytest
+
+from psycopg2 import sql
 from unittest import mock
-from database import Database  
+from database import Database
 
 
 @pytest.fixture
@@ -44,9 +46,10 @@ def test_create_table_success(mock_db_connection):
 
     db.create_table('test_table', [('id', 'SERIAL PRIMARY KEY'), ('name', 'VARCHAR(100)')])
 
-    mock_cursor.execute.assert_called_with(
-        'CREATE TABLE IF NOT EXISTS test_table (id SERIAL PRIMARY KEY, name VARCHAR(100))'
-    )
+    # Создаем ожидаемый SQL-запрос как объект sql.SQL
+    expected_query = sql.SQL('CREATE TABLE IF NOT EXISTS test_table (id SERIAL PRIMARY KEY, name VARCHAR(100))')
+
+    mock_cursor.execute.assert_called_with(expected_query)
     mock_conn.commit.assert_called_once()
 
 
@@ -57,15 +60,28 @@ def test_create_table_exists(mock_db_connection):
 
     mock_cursor.fetchone.return_value = [True]  # Таблица существует
 
+    # Вызов метода
     db.create_table('test_table', [('id', 'SERIAL PRIMARY KEY'), ('name', 'VARCHAR(100)')])
 
-    mock_cursor.execute.assert_called_once_with(
-        """SELECT EXISTS (
-                SELECT 1
-                FROM information_schema.tables
-                WHERE table_name = %s
-            );""", ('test_table',)
-    )
+    expected_query = """SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = %s
+    );"""
+
+    # Убираем лишние пробелы и переносы строк
+    mock_cursor.execute.assert_called_once()
+
+    # Сравнение с учетом отступов
+    called_query = mock_cursor.execute.call_args[0][0].replace(" ", "").replace("\n", "")
+    expected_query_clean = expected_query.replace(" ", "").replace("\n", "")
+
+    assert called_query == expected_query_clean, f"\nExpected: {expected_query}\nActual: {called_query}"
+
+    # Проверяем параметры
+    called_params = mock_cursor.execute.call_args[0][1]
+    assert called_params == ('test_table',)
+
     mock_conn.commit.assert_not_called()  # Таблица уже существует, не делаем commit
 
 
@@ -79,9 +95,12 @@ def test_insert_data(mock_db_connection):
     data = {'name': 'test_name'}
     inserted_id = db.insert_data('test_table', data)
 
-    mock_cursor.execute.assert_called_with(
-        'INSERT INTO test_table (name) VALUES (%s) RETURNING id', ['test_name']
-    )
+    # Ожидаемый SQL-запрос как строка
+    expected_query = sql.SQL('INSERT INTO test_table (name) VALUES (%s) RETURNING id')
+
+    # Проверяем вызов execute с обычной строкой
+    mock_cursor.execute.assert_called_once_with(expected_query, ['test_name'])
+
     mock_conn.commit.assert_called_once()
     assert inserted_id == 1
 
@@ -95,9 +114,13 @@ def test_select_data(mock_db_connection):
 
     result = db.select_data('test_table', ['id', 'name'], 'id = %s', (1,))
 
-    mock_cursor.execute.assert_called_with(
-        'SELECT id, name FROM test_table WHERE id = %s', (1,)
-    )
+    # Создаем ожидаемый SQL-запрос как объект sql.SQL
+    expected_query = sql.SQL(
+        "SELECT id, name FROM test_table") + sql.SQL(" WHERE id = %s")
+
+    # Проверяем вызов execute с объектом типа SQL
+    mock_cursor.execute.assert_called_once_with(expected_query, (1,))
+
     assert result == [(1, 'test_name')]
 
 
@@ -110,7 +133,7 @@ def test_update_data(mock_db_connection):
     result = db.update_data('test_table', data, 'id = %s', (1,))
 
     mock_cursor.execute.assert_called_with(
-        'UPDATE test_table SET name = %s WHERE id = %s', ['new_name', 1]
+        sql.SQL('UPDATE test_table SET name = %s WHERE id = %s'), ['new_name', 1]
     )
     mock_conn.commit.assert_called_once()
     assert result is True
@@ -123,7 +146,7 @@ def test_delete_data(mock_db_connection):
 
     result = db.delete_data('test_table', 'id = %s', (1,))
 
-    mock_cursor.execute.assert_called_with('DELETE FROM test_table WHERE id = %s', (1,))
+    mock_cursor.execute.assert_called_with(sql.SQL('DELETE FROM test_table') + sql.SQL (' WHERE id = %s'), (1,))
     mock_conn.commit.assert_called_once()
     assert result is True
 
