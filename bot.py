@@ -76,16 +76,33 @@ class VKBot:
     def create_keyboard(self, buttons: list[tuple[str, VkKeyboardColor]] = None,
                         one_time: bool = True) -> VkKeyboard:
         """
-        Создание универсальной клавиатуры с возможностью добавления произвольных кнопок.
+            Создание универсальной клавиатуры с возможностью добавления произвольных кнопок.
+
+        Если передано 4 кнопки, они будут разделены на 2 строки (по 2 кнопки).
+        Если передано 3 или меньше кнопок, они останутся в одной строке.
 
         :param buttons: Список кнопок в формате [(название, цвет)], где цвет - это VkKeyboardColor.
         :param one_time: Если True, клавиатура будет исчезать после использования.
+
         :return: Экземпляр клавиатуры.
         """
         keyboard = VkKeyboard(one_time=one_time)
 
-        for name, color in buttons:
-            keyboard.add_button(name, color=color.value)
+        if buttons:
+            if len(buttons) == 4:
+
+                for name, color in buttons[:2]:
+                    keyboard.add_button(name, color=color.value)
+                keyboard.add_line()
+
+                for name, color in buttons[2:]:
+                    keyboard.add_button(name, color=color.value)
+            else:
+
+                for name, color in buttons:
+                    keyboard.add_button(name, color=color.value)
+                if len(buttons) > 3:
+                    keyboard.add_line()
 
         return keyboard
 
