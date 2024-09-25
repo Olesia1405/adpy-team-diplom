@@ -202,6 +202,7 @@ class AuxiliaryUtils:
 
         else:
             return None
+
     def creating_kadiat_message(self, candidate: dict) -> tuple[str, list]:
         """
             Создает сообщение и список фотографий для кандидата.
@@ -243,6 +244,41 @@ class AuxiliaryUtils:
             'preference': preference
         }
         self.db_utils.insert_data('user_candidate', data)
+
+    def get_favorites(self, user_vk_id: int) -> list[dict] | None:
+        """
+            Возвращает список избранных кандидатов для указанного пользователя.
+
+            Метод извлекает данные избранных кандидатов из базы данных, если они существуют,
+        и возвращает их в виде списка словарей с ключами 'id', 'vk_id', 'name', 'city',
+        'age', 'gender', 'photo_ids'.
+            Если избранных кандидатов не найдено, возвращает None.
+
+        :param user_vk_id: int VK ID пользователя, для которого необходимо получить
+                           список избранных.
+
+        :return: Список словарей с информацией об избранных или None, если данные отсутствуют.
+        """
+        list_favorites = []
+
+        favorites_db = self.db_utils.search_favorites(user_vk_id)
+        if favorites_db:
+            for favorite_data in favorites_db:
+                age = self._calculate_age(favorite_data[4])
+                data = {
+                    'id': favorite_data[0],
+                    'vk_id': favorite_data[1],
+                    'name': favorite_data[2],
+                    'city': favorite_data[3],
+                    'age': age,
+                    'gender': favorite_data[5],
+                    'photo_ids': favorite_data[6],
+                }
+                list_favorites.append(data)
+        else:
+            list_favorites = None
+
+        return list_favorites
 
 
 class DatabaseUtils(Database):
@@ -391,6 +427,31 @@ class DatabaseUtils(Database):
         candidates = self.select_data(table_name, columns, condition, values)
         return candidates
 
+    def search_favorites(self, user_vk_id: int) -> list[tuple] | None:
+        """
+        Возвращает список избранных кандидатов из базы данных для указанного пользователя.
+
+            Метод выполняет запрос к базе данных, чтобы получить кандидатов, которым пользователь
+        поставил лайк (preference = TRUE).
+            Возвращает данные в виде списка кортежей с информацией о кандидатах или None,
+        если избранные не найдены.
+
+        :param user_vk_id: int VK ID пользователя, для которого нужно найти избранных кандидатов.
+
+        :return: Список кортежей с данными кандидатов или None, если избранных нет.
+        """
+        table_name = 'candidate c'
+        columns = '*'
+        values = (user_vk_id,)
+        condition = """
+                    c.id  IN (
+                    SELECT uc.candidate_id FROM user_candidate uc WHERE user_id = (
+                        SELECT u.id FROM users u WHERE u.vk_id = %s)
+                        AND uc.preference = TRUE 
+                )
+                """
+        favorites = self.select_data(table_name, columns, condition, values)
+        return favorites
 
 if __name__ == '__main__':
     r = AuxiliaryUtils()
