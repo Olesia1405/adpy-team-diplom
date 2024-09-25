@@ -12,7 +12,7 @@ from vk_api.keyboard import VkKeyboardColor
 from btn_text import (
     BTN_REGISTRATION, BTN_FIND_PAIR, BTN_HELP, BTN_LIKE, BTN_DISLIKE,
     BTN_SEX_MAN, BTN_SEX_WOMAN, buttons_regist, buttons_start,
-    buttons_choice, buttons_choice_sex, welcome_message
+    buttons_choice, buttons_choice_sex, WELCOME_MESSAGE, BTN_CHOSEN, BTN_MAIN_MENU
 )
 
 # Тестируем константы для названий кнопок
@@ -34,20 +34,23 @@ def test_buttons_regist():
 
 def test_buttons_start():
     assert buttons_start == [
-        (BTN_FIND_PAIR, VkKeyboardColor.POSITIVE),
+        (BTN_FIND_PAIR, VkKeyboardColor.PRIMARY),
+        (BTN_CHOSEN, VkKeyboardColor.POSITIVE),
         (BTN_HELP, VkKeyboardColor.NEGATIVE)
     ]
 
 def test_buttons_choice():
     assert buttons_choice == [
         (BTN_LIKE, VkKeyboardColor.POSITIVE),
-        (BTN_DISLIKE, VkKeyboardColor.NEGATIVE)
+        (BTN_DISLIKE, VkKeyboardColor.NEGATIVE),
+        (BTN_MAIN_MENU, VkKeyboardColor.PRIMARY)
     ]
 
 def test_buttons_choice_sex():
     assert buttons_choice_sex == [
         (BTN_SEX_MAN, VkKeyboardColor.PRIMARY),
-        (BTN_SEX_WOMAN, VkKeyboardColor.POSITIVE)
+        (BTN_SEX_WOMAN, VkKeyboardColor.POSITIVE),
+        (BTN_MAIN_MENU, VkKeyboardColor.PRIMARY)
     ]
 
 # Тестируем welcome_message
@@ -59,4 +62,4 @@ def test_welcome_message():
         'всегда можно нажать на "Помощь 🆘".\n\n'
         'Удачи в поиске, надеемся, что здесь ты найдёшь именно того, кого ищешь! 💫'
     )
-    assert welcome_message == expected_message
+    assert WELCOME_MESSAGE == expected_message

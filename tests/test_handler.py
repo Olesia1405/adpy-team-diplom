@@ -14,7 +14,7 @@ from unittest.mock import patch
 from unittest.mock import patch, MagicMock
 
 from btn_text import buttons_regist, buttons_start, \
-    buttons_choice_sex, BTN_REGISTRATION, BTN_FIND_PAIR, BTN_SEX_MAN, welcome_message
+    buttons_choice_sex, BTN_REGISTRATION, BTN_FIND_PAIR, BTN_SEX_MAN, WELCOME_MESSAGE
 
 # Пример фикстуры для мока объекта VKBot
 @pytest.fixture
@@ -51,7 +51,7 @@ def test_message_handler_start_new_user(handler, mock_vk_bot):
 
     # Проверяем, что методы send_message и create_keyboard вызываются с ожидаемыми аргументами
     mock_vk_bot.send_message.assert_called_with(
-        123, f"Привет, {user_name}! 👋 {welcome_message}",
+        123, f"Привет, {user_name}! 👋 {WELCOME_MESSAGE}",
         keyboard='keyboard_mock'
     )
     mock_vk_bot.create_keyboard.assert_called_with(buttons_regist)
