@@ -453,5 +453,29 @@ class DatabaseUtils(Database):
         favorites = self.select_data(table_name, columns, condition, values)
         return favorites
 
+    def candidate_status_update(self, candidate_id: int, user_vk_id: int, preference: bool):
+        """
+            Обновляет статус кандидата для пользователя в таблице "user_candidate".
+
+            Функция обновляет значение столбца "preference" в зависимости от выбора пользователя
+        (нравится/не нравится) для конкретного кандидата. Сопоставляет кандидата и пользователя
+        через их идентификаторы в базе данных.
+
+        :param candidate_id: ID кандидата, статус которого нужно обновить.
+        :param user_vk_id: VK ID пользователя, для которого обновляется статус кандидата.
+        :param preference: Логическое значение, которое указывает статус кандидата
+               (True - нравится, False - не нравится).
+
+        """
+        table_name = 'user_candidate'
+        data = {
+            'preference': preference
+        }
+        condition = """candidate_id = %s AND user_id =(
+                        SELECT u.id FROM users u WHERE u.vk_id = %s) """
+        values = (candidate_id, user_vk_id)
+        self.update_data(table_name, data, condition, values)
+
+
 if __name__ == '__main__':
     r = AuxiliaryUtils()
