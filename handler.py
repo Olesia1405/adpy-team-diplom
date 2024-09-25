@@ -25,8 +25,9 @@
 """
 import logging
 from btn_text import BTN_FIND_PAIR, buttons_regist, buttons_start, \
-    buttons_choice, welcome_message, BTN_REGISTRATION, \
-    buttons_choice_sex, BTN_SEX_MAN, BTN_LIKE, BTN_HELP, help_message, BTN_DISLIKE
+    buttons_choice, WELCOME_MESSAGE, BTN_REGISTRATION, \
+    buttons_choice_sex, BTN_SEX_MAN, BTN_LIKE, BTN_HELP, HELP_MESSAGE, BTN_DISLIKE, BTN_MAIN_MENU, BTN_CHOSEN, \
+    buttons_favorites, BTN_NEXT, BTN_BACK, BTN_REMOVE_FAVORITES, buttons_favorites_next, buttons_favorites_back
 from utils import DatabaseUtils, AuxiliaryUtils
 
 logger = logging.getLogger(__name__)
@@ -72,13 +73,13 @@ class Handler:
         is_user_in_db = self.util_db.check_user_existence_db(event.user_id)
         if request == "начать":
             if is_user_in_db is None:
-                self.send_message(event.user_id, f"Привет, {user_name}! 👋 {welcome_message}",
+                self.send_message(event.user_id, f"Привет, {user_name}! 👋 {WELCOME_MESSAGE}",
                                   keyboard=self.create_keyboard(buttons_regist))
             else:
                 self.send_message(event.user_id, f"Привет, {user_name}! 👋",
                                   keyboard=self.create_keyboard(buttons_start))
         elif request == BTN_HELP.lower():
-            self.send_message(event.user_id, help_message,
+            self.send_message(event.user_id, HELP_MESSAGE,
                               keyboard=self.create_keyboard(buttons_start))
 
         elif request == BTN_REGISTRATION.lower():
@@ -114,8 +115,23 @@ class Handler:
                                   )
                 self.vk_bot.set_user_state(event.user_id, None)
 
+        elif request == BTN_CHOSEN.lower():
+            list_favorites = self.utils_auxiliary.get_favorites(event.user_id)
+
+            if list_favorites is not None:
+
+                self.user_candidate_data[event.user_id] = {'favorites': list_favorites,
+                                                           'index': 0
+                                                           }
+                self._show_next_favorite(event, 0)
+
+            else:
+                self.send_message(event.user_id, "у вас нет избранных",
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+
         else:
-            text = 'Я вас не понял.Активирую главное меню.'
+            text = 'Я вас не понял. Активирую главное меню.'
             if is_user_in_db is None:
                 self.send_message(event.user_id, text,
                                   keyboard=self.create_keyboard(buttons_regist)
@@ -140,13 +156,20 @@ class Handler:
         :param request: str Текст сообщения, отправленного пользователем.
         """
         if state == "waiting_for_sex":
-            sex = 2 if request == BTN_SEX_MAN.lower() else 1
-            self.user_data[user_id] = {'sex': sex}
+            if request != BTN_MAIN_MENU.lower():
+                sex = 2 if request == BTN_SEX_MAN.lower() else 1
+                self.user_data[user_id] = {'sex': sex}
 
-            self.send_message(user_id,
-                              "Введите возраст или укажите диапазон возрастов, "
-                              "разделяя значения запятой.")
-            self.vk_bot.set_user_state(user_id, "waiting_for_age")
+                self.send_message(user_id,
+                                  "Введите возраст или укажите диапазон возрастов, "
+                                  "разделяя значения запятой.")
+                self.vk_bot.set_user_state(user_id, "waiting_for_age")
+
+            else:
+                self.send_message(event.user_id, BTN_MAIN_MENU,
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+                self.vk_bot.set_user_state(user_id, None)
 
         elif state == "waiting_for_age":
             age = request.split(',')
@@ -165,6 +188,7 @@ class Handler:
 
         elif state == "waiting_for_like_dislike":
             candidate_id = self.user_candidate_data[event.user_id][0]['id']
+
             if request == BTN_LIKE.lower():
 
                 self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, True)
@@ -175,10 +199,46 @@ class Handler:
                 self.utils_auxiliary.adding_candidate_status(candidate_id, event.user_id, False)
                 del self.user_candidate_data[event.user_id][0]
                 self._transfer_show(event, user_name)
+
+            elif request == BTN_MAIN_MENU.lower():
+                self.send_message(event.user_id, BTN_MAIN_MENU,
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+                self.vk_bot.set_user_state(user_id, None)
+
             else:
                 self.send_message(event.user_id, 'Не ожиданий ответ, перенаправляю в главное меню',
                                   keyboard=self.create_keyboard(buttons_start)
                                   )
+                self.vk_bot.set_user_state(user_id, None)
+
+        elif state == 'waiting_for_favorite':
+
+            if request == BTN_NEXT.lower():
+                self._show_next_favorite(event, 1)
+
+            elif request == BTN_BACK.lower():
+                self._show_next_favorite(event, -1)
+
+            elif request == BTN_REMOVE_FAVORITES.lower():
+                index = self.user_candidate_data[event.user_id]['index']
+                candidate_id = self.user_candidate_data[event.user_id]['favorites'][index]['id']
+                print(candidate_id)
+                self.util_db.candidate_status_update(candidate_id, event.user_id, False)
+                del self.user_candidate_data[event.user_id]['favorites'][index]
+                self._show_next_favorite(event, 0)
+
+            elif request == BTN_MAIN_MENU.lower():
+                self.send_message(event.user_id, BTN_MAIN_MENU,
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+                self.vk_bot.set_user_state(user_id, None)
+
+            else:
+                self.send_message(event.user_id, 'Не ожиданий ответ, перенаправляю в главное меню',
+                                  keyboard=self.create_keyboard(buttons_start)
+                                  )
+                self.vk_bot.set_user_state(user_id, None)
 
     def _filling_user_candidate_data_dict(self, user_data: dict, user_vk_id: int):
         """
@@ -207,3 +267,39 @@ class Handler:
         """
         request = 'show'
         self.message_handler(event, user_name, request)
+
+    def _show_next_favorite(self, event, step: int):
+        """
+        Отображает следующего кандидата из списка избранных для пользователя.
+
+            Функция отвечает за вывод информации о кандидате, включая его фото и данные,
+        и отправляет сообщение пользователю с клавиатурой для взаимодействия (например,
+        кнопки для просмотра следующего кандидата, возврата к предыдущему или удаления
+        из избранного). После отправки данных функция обновляет состояние пользователя в системе.
+
+        :param event: объект события VK API, содержащий информацию о текущем взаимодействии
+                    пользователя с ботом.
+
+        """
+        self.user_candidate_data[event.user_id]['index'] += step
+        index = self.user_candidate_data[event.user_id]['index']
+        favorites_list = self.user_candidate_data[event.user_id]['favorites']
+
+        if index <= 0:
+            index = 0
+            keyboard = buttons_favorites_next
+            self.user_candidate_data[event.user_id]['index'] = index
+        elif index >= len(favorites_list):
+            index = len(favorites_list) - 1
+            self.user_candidate_data[event.user_id]['index'] = index
+            keyboard = buttons_favorites_back
+        else:
+            keyboard = buttons_favorites
+
+        candidate = favorites_list[index]
+        massage, photo_id_list = self.utils_auxiliary.creating_kadiat_message(candidate)
+        self.send_message(event.user_id, massage,
+                          keyboard=self.create_keyboard(keyboard),
+                          photo_id_list=photo_id_list
+                          )
+        self.vk_bot.set_user_state(event.user_id, "waiting_for_favorite")
