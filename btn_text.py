@@ -70,16 +70,16 @@ buttons_favorites = [(BTN_BACK, VkKeyboardColor.PRIMARY),
                      (BTN_NEXT, VkKeyboardColor.PRIMARY),
                      (BTN_REMOVE_FAVORITES, VkKeyboardColor.NEGATIVE),
                      (BTN_MAIN_MENU, VkKeyboardColor.POSITIVE)
-                    ]
+                     ]
 buttons_favorites_next = [(BTN_NEXT, VkKeyboardColor.PRIMARY),
                           (BTN_REMOVE_FAVORITES, VkKeyboardColor.NEGATIVE),
                           (BTN_MAIN_MENU, VkKeyboardColor.POSITIVE)
-                         ]
+                          ]
 
 buttons_favorites_back = [(BTN_BACK, VkKeyboardColor.PRIMARY),
                           (BTN_REMOVE_FAVORITES, VkKeyboardColor.NEGATIVE),
                           (BTN_MAIN_MENU, VkKeyboardColor.POSITIVE)
-                         ]
+                          ]
 # Сообщение пользователем.
 
 WELCOME_MESSAGE = '\nДобро пожаловать в наш бот для поиска своей второй половинки 💕! \n\n' \
@@ -90,7 +90,7 @@ WELCOME_MESSAGE = '\nДобро пожаловать в наш бот для п�
 
 HELP_MESSAGE = """
                 Этот бот поможет вам найти пару! 👫
-
+                
                 Команды бота:
                 - "Начать" — зарегистрируйтесь и начните поиск.
                 - "Найти пару" — выберите параметры для поиска кандидатов.
