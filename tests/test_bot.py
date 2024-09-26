@@ -32,6 +32,18 @@ def test_create_keyboard():
     assert keyboard.lines[0][1]['action']['label'] == "Button2"  # Проверка на равенство
     assert keyboard.lines[0][1]['color'] == VkKeyboardColor.SECONDARY.value  # Проверка цвета
 
+    # Проверка клавиатуры с 4-мя кнопками
+    buttons = [("Button1", VkKeyboardColor.PRIMARY), ("Button2", VkKeyboardColor.SECONDARY),
+               ("Button3", VkKeyboardColor.PRIMARY), ("Button4", VkKeyboardColor.SECONDARY)
+               ]
+    keyboard = bot.create_keyboard(buttons)
+
+    assert len(keyboard.lines) == 2  # Убедитесь, что все кнопки на одной строке
+    assert len(keyboard.lines[0]) == 2  # На первой строке две кнопке
+    assert len(keyboard.lines[1]) == 2  # На второй строке две кнопке
+    assert keyboard.lines[0][1]['action']['label'] == "Button2"  # Проверка на равенство
+    assert keyboard.lines[0][1]['color'] == VkKeyboardColor.SECONDARY.value  # Проверка цвета
+
 # Тестируем отправку сообщения
 @patch('bot.VKBot.send_message')
 def test_send_message(mock_send_message):
