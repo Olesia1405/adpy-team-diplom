@@ -59,9 +59,16 @@ class VKBot:
 
     def __init__(self, vk_group_token: str):
         """
-        Инициализирует экземпляр VKBot.
+        Инициализирует экземпляр VKBot, настраивая все необходимые компоненты для работы бота.
 
-        :param vk_group_token: str Токен группы ВКонтакте для доступа к API.
+        :param vk_group_token: str Токен группы ВКонтакте, используемый для взаимодействия с VK API.
+
+        Инициализация включает:
+        - VkApi для работы с методами VK.
+        - VkLongPoll для отслеживания событий.
+        - Базы данных для хранения и извлечения данных.
+        - Handler для обработки взаимодействий с пользователями.
+        - Словарь user_states для хранения состояний пользователей.
         """
         self.vk_bot = vk_api.VkApi(token=vk_group_token)
         self.longpoll = VkLongPoll(self.vk_bot)

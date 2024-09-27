@@ -49,6 +49,17 @@ class Handler:
 
         :param vk_bot: Объект класса VKBot, который предоставляет методы
                        для отправки сообщений и создания клавиатур.
+        Атрибуты:
+            - self.vk_bot: Экземпляр VKBot для взаимодействия с ВКонтакте.
+            - self.send_message: Ссылка на метод vk_bot.send_message для отправки сообщений
+            пользователям.
+            - self.create_keyboard: Ссылка на метод vk_bot.create_keyboard для создания клавиатур.
+            - self.util_db: Экземпляр класса DatabaseUtils для взаимодействия с базой данных.
+            - self.utils_auxiliary: Экземпляр класса AuxiliaryUtils для вспомогательных функций.
+            - self.user_data: Словарь для хранения временных данных пользователей
+            (например, стадия взаимодействия).
+            - self.user_candidate_data: Словарь для хранения данных о кандидатах и их статусах
+            для каждого пользователя.
         """
         self.vk_bot = vk_bot
         self.send_message = vk_bot.send_message
